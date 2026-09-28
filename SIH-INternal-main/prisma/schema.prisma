@@ -1,7 +1,6 @@
 // Prisma Schema for InnovProcure Enterprise Government Innovation Procurement Platform
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 generator client {

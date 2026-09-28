@@ -1,6 +1,11 @@
 node_modules/
 build/
 dist/
+/frontend/dist/
+/backend/dist/
+/backend/uploads/*
+!/backend/uploads/.gitkeep
+/data/postgres_db/
 coverage/
 .DS_Store
 *.log
