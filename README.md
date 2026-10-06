@@ -20,7 +20,7 @@ Great innovations often exist, but the right opportunities don't always find the
  
 **InnovProcure** is a unified digital platform that enables Government Departments to **discover, evaluate, pilot and procure** innovative startup solutions through a transparent and outcome-driven workflow. From discovering the right ideas to enabling real-world pilots, we turn innovation into impact.
  
-Built by **Team DoraX** for **Smart India Hackathon 2026** (Problem Statement 26136 — Startup-Friendly Public Procurement).
+Built by **Team DoraX** 
  
 ---
  
