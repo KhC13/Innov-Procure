@@ -113,7 +113,7 @@ Government Challenge → Discovery & Eligibility → Expert Evaluation & Scoring
  
 ## 📊 Project Presentation (PPT)
  
-📥 **[Download the full presentation (PDF)](docs/InnovProcure_PPT.pdf)**
+📥 **[Download the full presentation (PDF)](docs/InnovProcure_DoraX.pdf)**
  
 
  
@@ -218,7 +218,7 @@ npm start
  
 | Document | Description |
 |---|---|
-| [Presentation (PDF)](docs/InnovProcure_PPT.pdf) | Full SIH 2026 project presentation |
+| [Presentation (PDF)](docs/InnovProcure_DoraX.pdf) | Full SIH 2026 project presentation |
  
  
 ---
