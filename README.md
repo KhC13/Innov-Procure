@@ -218,14 +218,13 @@ npm start
  
 | Document | Description |
 |---|---|
-| [Presentation (PDF)](docs/InnovProcure_DoraX.pdf) | Full SIH 2026 project presentation |
+| [Presentation (PDF)](docs/InnovProcure_DoraX.pdf) | 
  
  
 ---
  
 ## 🔗 References
  
-- Smart India Hackathon 2026 — Problem Statement 26136
 - Startup India — Public Procurement / GeM Startup Runway
 - Maharashtra State Startup Policy
 - Maharashtra Startup Week (Govt. of Maharashtra)
@@ -233,5 +232,5 @@ npm start
 - Press Information Bureau (GeM & SWAYATT, 2026)
 ---
  
-<p align="center">Made with ❤️ by <b>Team DoraX</b> for Smart India Hackathon 2026</p>
+<p align="center">Made with ❤️ by <b>Team DoraX</b> </p>
  
