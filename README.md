@@ -123,7 +123,7 @@ Government Challenge → Discovery & Eligibility → Expert Evaluation & Scoring
  
 | Home | Dashboard | Pilot Tracking |
 |---|---|---|
-| ![Home](docs/screenshots/home.png) | ![Dashboard](docs/screenshots/dashboard.png) | ![Pilot](docs/screenshots/pilot.png) |
+| ![Home](docs/screenshots/home.png.png) | ![Dashboard](docs/screenshots/dashboard.png.png) | ![Pilot](docs/screenshots/pilot.png.png) |
  
 ---
  
