@@ -136,7 +136,7 @@ Government Challenge → Discovery & Eligibility → Expert Evaluation & Scoring
  
 ```bash
 # 1. Clone the repository
-git clone https://github.com/yash616257201-ux/InnovProcure.git
+git clone [https://github.com/KhC13/Innov-Procure]
 cd InnovProcure
  
 # 2. Install backend dependencies
