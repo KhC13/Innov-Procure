@@ -2,7 +2,7 @@
  
 ### *Bridging Government Needs with Startup Innovation*
  
-> From Government Problem to Proven Startup Solution — **Discover · Evaluate · Pilot · Procure · Scale**
+> From Government Problem to Proven Startup Solution — **Discover · Evaluate · Pilot · Procure · Scale*
  
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-Render-46E3B7?style=for-the-badge&logo=render&logoColor=white)](https://innovprocure-y0ob.onrender.com)
 ![React](https://img.shields.io/badge/React.js-61DAFB?style=for-the-badge&logo=react&logoColor=black)
