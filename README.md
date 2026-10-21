@@ -2,7 +2,7 @@
  
 ### *Bridging Government Needs with Startup Innovation*
  
-> From Government Problem to Proven Startup Solution — **Discover · Evaluate · Pilot · Procure · Scale*
+> From Government Problem to Proven Startup Solution — **Discover · Evaluate · Pilot · Procure · Scale**
  
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-Render-46E3B7?style=for-the-badge&logo=render&logoColor=white)](https://innovprocure-y0ob.onrender.com)
 ![React](https://img.shields.io/badge/React.js-61DAFB?style=for-the-badge&logo=react&logoColor=black)
@@ -193,14 +193,15 @@ npm start
 - Built the business logic for the challenge-to-procurement workflow
 #### 👩‍💻 Kanishka Sharma — Frontend Optimization
 - Optimized the React frontend for performance, responsiveness and a consistent UI
-- Improved component structure, reusability and page load experience
+- Improved component structure, reusability and page load experience 
 - Refined user flows and dashboards for a smoother experience across roles
 - Fixed UI bugs and improved overall usability
 #### 👨‍💻 Yash Kumar — Frontend Advancement & Deployment
 - Developed advanced frontend features and role-based dashboards
+- Designed the samples for landing page
 - Integrated the frontend with backend REST APIs
 - Deployed the application on Render ([live link](https://innovprocure-y0ob.onrender.com))
-- Managed the GitHub repository and version control
+- Managed the GitHub repository and version control 
 ---
  
 ## 🌍 Impact & Benefits
