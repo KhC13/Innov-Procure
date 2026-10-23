@@ -222,17 +222,17 @@ export function ProblemsView({ user, onSelectProblemForAI, initialSelectedId }: 
   return (
     <div className="space-y-6">
       {/* Header & Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#0b1f4d] p-5 rounded-2xl border border-[#143b7a] shadow-md">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
+            <h1 className="text-xl font-extrabold text-white tracking-tight">
               Government Innovation Challenges
             </h1>
-            <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-full border border-indigo-200">
+            <span className="px-2 py-0.5 bg-white/10 text-blue-100 text-xs font-bold rounded-full border border-white/20">
               {problems.length} Challenges
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-300 mt-1">
             Browse public-sector problem statements, evaluate technical feasibility, run AI semantic matches, and apply.
           </p>
         </div>

@@ -143,7 +143,7 @@ export function ProcurementView() {
   return (
     <div className="space-y-6">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-6 text-white border border-slate-800 shadow-md">
+      <div className="bg-[#0b1f4d] rounded-2xl p-6 text-white border border-[#143b7a] shadow-md">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-emerald-400/20 text-emerald-300 border border-emerald-400/30 rounded-md text-xs font-semibold uppercase tracking-wider mb-2">

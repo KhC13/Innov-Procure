@@ -126,8 +126,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col font-sans antialiased selection:bg-indigo-500 selection:text-white">
-      {/* Top Header */}
+    <div className="app-shell min-h-screen bg-slate-100 text-slate-900 font-sans antialiased">
       <Header
         user={currentUser}
         activeTab={canAccessAuditTrail ? activeTab : activeTab === 'audit' ? 'dashboard' : activeTab}
@@ -152,8 +151,8 @@ export default function App() {
         onGoToLanding={() => setAppView('landing')}
       />
 
-      {/* Main Body Content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="app-main">
+        <div className="app-main-inner">
         {activeTab === 'dashboard' && (
           <DashboardView
             user={currentUser}
@@ -206,17 +205,17 @@ export default function App() {
         {activeTab === 'procurement' && <ProcurementView />}
 
         {canAccessAuditTrail && activeTab === 'audit' && <AuditView />}
+        </div>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 py-6 mt-12 text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <footer className="app-footer">
+        <div className="app-footer-inner">
           <div className="flex items-center gap-2">
             <span className="font-bold text-slate-800">InnovProcure</span>
             <span>·</span>
             <span>National Innovation Procurement Infrastructure</span>
             <span>·</span>
-            <span className="text-emerald-700 font-medium">PostgreSQL Connected</span>
+            <span className="app-footer-status">Platform workspace</span>
           </div>
           <div className="text-[11px] text-slate-400">
             Compliant with General Financial Rules (GFR 2017) Innovation Rule 194 & Public Procurement Policy
