@@ -49,14 +49,23 @@ export async function clearAllData() {
 
 export async function seedDatabase(force = false) {
   try {
-    const startupsCountRes = await query('SELECT COUNT(*) as count FROM startups');
-    const problemsCountRes = await query('SELECT COUNT(*) as count FROM problem_statements');
-    const sCount = parseInt(startupsCountRes.rows[0]?.count || '0', 10);
-    const pCount = parseInt(problemsCountRes.rows[0]?.count || '0', 10);
+    const existingDataRes = await query<{ has_data: boolean }>(`
+      SELECT EXISTS (
+        SELECT 1 FROM departments
+        UNION ALL SELECT 1 FROM startups
+        UNION ALL SELECT 1 FROM users
+        UNION ALL SELECT 1 FROM problem_statements
+        UNION ALL SELECT 1 FROM applications
+        UNION ALL SELECT 1 FROM pilots
+        UNION ALL SELECT 1 FROM procurements
+        UNION ALL SELECT 1 FROM contracts
+        UNION ALL SELECT 1 FROM notifications
+        UNION ALL SELECT 1 FROM audit_logs
+      ) AS has_data
+    `);
 
-    // If force is requested or we do not have our 4 demo startups and 3 demo problems, clear and reseed
-    if (!force && sCount === 4 && pCount === 3) {
-      console.log('Database already has clean demo dataset (4 startups, 3 problems). Skipping re-seed.');
+    if (!force && existingDataRes.rows[0]?.has_data) {
+      console.log('Database contains existing data; skipping automatic demo seed.');
       return;
     }
 

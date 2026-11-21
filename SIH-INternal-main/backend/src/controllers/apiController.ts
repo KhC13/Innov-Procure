@@ -2056,6 +2056,6 @@ router.post('/system/reset-demo', async (_req, res) => {
   } catch (err: any) {
     console.error('System reset error:', err);
     return sendInternalError(res, 'Reset demo', err);
-  }
+    }
 });
 

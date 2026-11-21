@@ -210,17 +210,6 @@ export async function initDatabaseSchema() {
       valid_until TEXT
     );
 
-    CREATE TABLE IF NOT EXISTS startup_documents (
-      id TEXT PRIMARY KEY,
-      startup_id TEXT NOT NULL REFERENCES startups(id) ON DELETE CASCADE,
-      title TEXT NOT NULL,
-      file_type TEXT NOT NULL,
-      file_url TEXT NOT NULL,
-      file_size INTEGER NOT NULL,
-      uploaded_by TEXT REFERENCES users(id) ON DELETE SET NULL,
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    );
-
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       email TEXT UNIQUE NOT NULL,
@@ -234,6 +223,17 @@ export async function initDatabaseSchema() {
       avatar_url TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS startup_documents (
+      id TEXT PRIMARY KEY,
+      startup_id TEXT NOT NULL REFERENCES startups(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      file_type TEXT NOT NULL,
+      file_url TEXT NOT NULL,
+      file_size INTEGER NOT NULL,
+      uploaded_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
     );
 
     CREATE TABLE IF NOT EXISTS problem_statements (

@@ -10,6 +10,7 @@ import {
   FileCheck2,
   FileText,
   Layers,
+  LockKeyhole,
   Menu,
   Plus,
   RotateCcw,
@@ -19,6 +20,7 @@ import {
 } from 'lucide-react';
 import { User, Notification, UserRole } from '../types';
 import { api } from '../services/api';
+import { canAccessTab, canCreateChallenge } from '../utils/roleAccess';
 
 interface HeaderProps {
   user: User | null;
@@ -42,6 +44,7 @@ const navItems = [
   { id: 'applications', label: 'Screening & review', icon: FileCheck2, group: 'Delivery' },
   { id: 'pilots', label: 'Pilots & KPIs', icon: Layers, group: 'Delivery' },
   { id: 'procurement', label: 'Procurement pipeline', icon: FileText, group: 'Delivery' },
+  { id: 'audit', label: 'Audit trail', icon: Shield, group: 'Administration' },
 ];
 
 const roleOptions: Array<{ role: UserRole; name: string; detail: string }> = [
@@ -55,8 +58,8 @@ const roleOptions: Array<{ role: UserRole; name: string; detail: string }> = [
 const roleNames: Record<UserRole, string> = {
   SUPER_ADMIN: 'Super Admin',
   GOVERNMENT_OFFICER: 'Government Officer',
-  EVALUATOR: 'Technical Evaluator',
-  STARTUP: 'Startup Founder',
+  EVALUATOR: 'Evaluator',
+  STARTUP: 'Startup',
   PROCUREMENT_OFFICER: 'Procurement Officer',
 };
 
@@ -77,9 +80,6 @@ export function Header({
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const unreadCount = notifications.filter((notification) => !notification.is_read).length;
-  const visibleNavItems = user?.role === 'SUPER_ADMIN'
-    ? [...navItems, { id: 'audit', label: 'Audit trail', icon: Shield, group: 'Administration' }]
-    : navItems;
 
   const navigate = (tab: string) => {
     onTabChange(tab);
@@ -92,32 +92,39 @@ export function Header({
       <aside className={`app-sidebar${mobileNavOpen ? ' is-open' : ''}`}>
         <button className="app-brand" onClick={onGoToLanding} aria-label="Open InnovProcure landing page">
           <span className="app-brand-mark"><Shield size={20} /></span>
-          <span><strong>InnovProcure</strong><small>Public innovation platform</small></span>
+          <span><strong>InnovProcure</strong><small>Innovation for Maharashtra</small></span>
         </button>
 
         <div className="app-sidebar-context">
           <span className="app-context-indicator" />
-          <span>Government of Maharashtra</span>
+          <span>Government of Maharashtra · Live workspace</span>
         </div>
 
         <nav className="app-nav" aria-label="Main navigation">
           {['Workspace', 'Delivery', 'Administration'].map((group) => {
-            const groupItems = visibleNavItems.filter((item) => item.group === group);
+            const groupItems = navItems.filter((item) => item.group === group);
             if (groupItems.length === 0) return null;
             return (
               <div className="app-nav-group" key={group}>
                 <p className="app-nav-label">{group}</p>
-                {groupItems.map(({ id, label, icon: Icon }) => (
-                  <button
-                    key={id}
-                    className={`app-nav-item${activeTab === id ? ' is-active' : ''}`}
-                    onClick={() => navigate(id)}
-                    aria-current={activeTab === id ? 'page' : undefined}
-                  >
-                    <Icon size={17} strokeWidth={1.8} />
-                    <span>{label}</span>
-                  </button>
-                ))}
+                {groupItems.map(({ id, label, icon: Icon }) => {
+                  const isAvailable = canAccessTab(user?.role, id);
+                  return (
+                    <button
+                      key={id}
+                      className={`app-nav-item${activeTab === id ? ' is-active' : ''}${isAvailable ? '' : ' is-restricted'}`}
+                      onClick={() => { if (isAvailable) navigate(id); }}
+                      aria-current={activeTab === id ? 'page' : undefined}
+                      aria-disabled={!isAvailable}
+                      aria-label={isAvailable ? label : `${label}, unavailable for this role`}
+                      title={isAvailable ? undefined : 'This module is unavailable for your role'}
+                    >
+                      <Icon size={17} strokeWidth={1.8} />
+                      <span>{label}</span>
+                      {!isAvailable && <LockKeyhole size={13} className="app-nav-lock" aria-hidden="true" />}
+                    </button>
+                  );
+                })}
               </div>
             );
           })}
@@ -144,7 +151,9 @@ export function Header({
           </div>
         </div>
         <div className="app-topbar-actions">
-          <button className="app-create-button" onClick={onCreateChallengeClick}><Plus size={16} /><span>New challenge</span></button>
+          {canCreateChallenge(user?.role) && (
+            <button className="app-create-button" onClick={onCreateChallengeClick}><Plus size={16} /><span>New challenge</span></button>
+          )}
           <div className="app-popover-anchor">
             <button
               className="app-icon-button"

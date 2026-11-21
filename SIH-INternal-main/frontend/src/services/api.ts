@@ -66,7 +66,7 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
 
 // 1. Auth API
 export const api = {
-  async login(email: string, password: string) {
+  async login(email: string, password: string): Promise<{ token: string; user: User }> {
     const data = await fetchWithAuth('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),

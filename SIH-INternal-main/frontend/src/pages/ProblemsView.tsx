@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { ProblemStatement, User, ProblemStatus } from '../types';
 import { api } from '../services/api';
+import { canAccessTab, canApplyToChallenge, canCreateChallenge } from '../utils/roleAccess';
 
 interface ProblemsViewProps {
   key?: string;
@@ -30,6 +31,9 @@ interface ProblemsViewProps {
 }
 
 export function ProblemsView({ user, onSelectProblemForAI, initialSelectedId }: ProblemsViewProps) {
+  const canPostChallenge = canCreateChallenge(user?.role);
+  const canApply = canApplyToChallenge(user?.role);
+  const canRunAIMatching = canAccessTab(user?.role, 'ai-matching');
   const [problems, setProblems] = useState<ProblemStatement[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -238,13 +242,15 @@ export function ProblemsView({ user, onSelectProblemForAI, initialSelectedId }: 
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Post New Challenge
-          </button>
+          {canPostChallenge && (
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Post New Challenge
+            </button>
+          )}
         </div>
       </div>
 
@@ -386,26 +392,28 @@ export function ProblemsView({ user, onSelectProblemForAI, initialSelectedId }: 
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      onSelectProblemForAI(prob.id);
-                    }}
-                    title="Launch AI Semantic Matching"
-                    className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-indigo-200 flex items-center gap-1 text-xs font-semibold"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                    <span className="hidden sm:inline">AI Match</span>
-                  </button>
+                  {canRunAIMatching && (
+                    <button
+                      onClick={() => onSelectProblemForAI(prob.id)}
+                      title="Launch AI Semantic Matching"
+                      className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-indigo-200 flex items-center gap-1 text-xs font-semibold"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                      <span className="hidden sm:inline">AI Match</span>
+                    </button>
+                  )}
 
-                  <button
-                    onClick={() => {
-                      setApplyProblem(prob);
-                      setShowApplyModal(true);
-                    }}
-                    className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-lg transition-colors"
-                  >
-                    Apply
-                  </button>
+                  {canApply && (
+                    <button
+                      onClick={() => {
+                        setApplyProblem(prob);
+                        setShowApplyModal(true);
+                      }}
+                      className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-lg transition-colors"
+                    >
+                      Apply
+                    </button>
+                  )}
 
                   <button
                     onClick={() => loadProblemDetails(prob.id)}
@@ -549,16 +557,18 @@ export function ProblemsView({ user, onSelectProblemForAI, initialSelectedId }: 
 
             {/* Modal Footer */}
             <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-              <button
-                onClick={() => {
-                  setSelectedProblem(null);
-                  onSelectProblemForAI(selectedProblem.id);
-                }}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs rounded-lg border border-indigo-200"
-              >
-                <Sparkles className="w-4 h-4 text-amber-500" />
-                Trigger AI Semantic Matcher
-              </button>
+              {canRunAIMatching && (
+                <button
+                  onClick={() => {
+                    setSelectedProblem(null);
+                    onSelectProblemForAI(selectedProblem.id);
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs rounded-lg border border-indigo-200"
+                >
+                  <Sparkles className="w-4 h-4 text-amber-500" />
+                  Trigger AI Semantic Matcher
+                </button>
+              )}
 
               <div className="flex items-center gap-2">
                 <button
@@ -567,16 +577,18 @@ export function ProblemsView({ user, onSelectProblemForAI, initialSelectedId }: 
                 >
                   Close
                 </button>
-                <button
-                  onClick={() => {
-                    setApplyProblem(selectedProblem);
-                    setSelectedProblem(null);
-                    setShowApplyModal(true);
-                  }}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg"
-                >
-                  Submit Proposal
-                </button>
+                {canApply && (
+                  <button
+                    onClick={() => {
+                      setApplyProblem(selectedProblem);
+                      setSelectedProblem(null);
+                      setShowApplyModal(true);
+                    }}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg"
+                  >
+                    Submit Proposal
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -584,7 +596,7 @@ export function ProblemsView({ user, onSelectProblemForAI, initialSelectedId }: 
       )}
 
       {/* Create Problem Wizard Modal */}
-      {showCreateModal && (
+      {showCreateModal && canPostChallenge && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200">
             <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
@@ -729,7 +741,7 @@ export function ProblemsView({ user, onSelectProblemForAI, initialSelectedId }: 
       )}
 
       {/* Submit Application Proposal Modal */}
-      {showApplyModal && applyProblem && (
+      {showApplyModal && applyProblem && canApply && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200">
             <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">

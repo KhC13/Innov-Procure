@@ -28,6 +28,7 @@ import {
 } from 'recharts';
 import { Application, AuditLog, DashboardAnalytics, User } from '../types';
 import { api } from '../services/api';
+import { canAccessTab, canCreateChallenge } from '../utils/roleAccess';
 
 interface DashboardViewProps {
   user: User | null;
@@ -35,7 +36,7 @@ interface DashboardViewProps {
   onCreateChallengeClick: () => void;
 }
 
-const SECTOR_COLORS = ['#5747b8', '#168a9a', '#159b76', '#d39527', '#c15e83', '#7b62c4', '#3c79b3', '#218e83'];
+const SECTOR_COLORS = ['#062d49', '#0b496d', '#159b9a', '#e8a04a', '#0f7a79', '#1a6f8c', '#3d7a8c', '#b77820'];
 
 const funnelStages = [
   { label: 'Public Challenges', key: 'problems', tab: 'problems', description: 'Published needs' },
@@ -109,6 +110,10 @@ function statusLabel(status: string) {
 }
 
 export function DashboardView({ user, onNavigate, onCreateChallengeClick }: DashboardViewProps) {
+  const canAccessApplications = canAccessTab(user?.role, 'applications');
+  const canAccessAIMatching = canAccessTab(user?.role, 'ai-matching');
+  const canAccessProcurement = canAccessTab(user?.role, 'procurement');
+  const canPublishChallenges = canCreateChallenge(user?.role);
   const dashboardRef = useRef<HTMLDivElement>(null);
   const [reducedMotion, setReducedMotion] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
@@ -126,7 +131,7 @@ export function DashboardView({ user, onNavigate, onCreateChallengeClick }: Dash
     setError('');
     const [analyticsResult, applicationsResult, logsResult] = await Promise.allSettled([
       api.getDashboardAnalytics(),
-      api.getApplications(),
+      canAccessApplications ? api.getApplications() : Promise.resolve({ applications: [] as Application[] }),
       user?.role === 'SUPER_ADMIN' ? api.getAuditLogs() : Promise.resolve({ logs: [] }),
     ]);
 
@@ -159,7 +164,7 @@ export function DashboardView({ user, onNavigate, onCreateChallengeClick }: Dash
       console.error('Failed to load governance activity:', logsResult.reason);
     }
     setLoading(false);
-  }, [user]);
+  }, [canAccessApplications, user]);
 
   useEffect(() => {
     void loadDashboard();
@@ -238,9 +243,9 @@ export function DashboardView({ user, onNavigate, onCreateChallengeClick }: Dash
           <h1>Welcome back, {user?.name || 'Administrator'}</h1>
           <p>Track public-sector challenges, startup proposals and the journey from pilot to procurement.</p>
           <div className="executive-welcome-actions">
-            <button className="executive-button-primary" onClick={onCreateChallengeClick}><Building2 size={15} /> Publish New Challenge</button>
-            <button className="executive-button-secondary" onClick={() => onNavigate('ai-matching')}><Sparkles size={15} /> Launch AI Matching</button>
-            <button className="executive-button-secondary" onClick={() => onNavigate('procurement')}><FileText size={15} /> View Procurement</button>
+            {canPublishChallenges && <button className="executive-button-primary" onClick={onCreateChallengeClick}><Building2 size={15} /> Publish New Challenge</button>}
+            {canAccessAIMatching && <button className="executive-button-secondary" onClick={() => onNavigate('ai-matching')}><Sparkles size={15} /> Launch AI Matching</button>}
+            {canAccessProcurement && <button className="executive-button-secondary" onClick={() => onNavigate('procurement')}><FileText size={15} /> View Procurement</button>}
           </div>
         </div>
       </section>
@@ -251,14 +256,23 @@ export function DashboardView({ user, onNavigate, onCreateChallengeClick }: Dash
           <span className="executive-live-indicator"><span /> Live data</span>
         </div>
         <div className="executive-metrics-grid">
-          {metrics.map(({ label, value, detail, icon: Icon, color, tab }) => (
-            <button className="executive-metric-card" key={label} onClick={() => onNavigate(tab)}>
+          {metrics.map(({ label, value, detail, icon: Icon, color, tab }) => {
+            const canOpenModule = canAccessTab(user?.role, tab);
+            return (
+            <button
+              className={`executive-metric-card${canOpenModule ? '' : ' is-restricted'}`}
+              key={label}
+              onClick={() => onNavigate(tab)}
+              disabled={!canOpenModule}
+              aria-label={canOpenModule ? label : `${label}, details unavailable for your role`}
+            >
               <span className={`executive-metric-icon ${color}`}><Icon size={17} /></span>
               <span className="executive-metric-label">{label}</span>
               <strong><AnimatedValue value={value} /></strong>
               <small>{detail}</small>
             </button>
-          ))}
+            );
+          })}
         </div>
       </section>
 
@@ -267,14 +281,23 @@ export function DashboardView({ user, onNavigate, onCreateChallengeClick }: Dash
           <div><h2><Flame size={16} /> National Innovation Procurement Funnel</h2><p>Live progression from public challenges to contracts and scaled delivery.</p></div>
         </div>
         <div className="executive-funnel-grid">
-          {funnelStages.map(({ label, key, tab, description }, index) => (
-            <button className="executive-funnel-stage" key={key} onClick={() => onNavigate(tab)}>
+          {funnelStages.map(({ label, key, tab, description }, index) => {
+            const canOpenModule = canAccessTab(user?.role, tab);
+            return (
+            <button
+              className="executive-funnel-stage"
+              key={key}
+              onClick={() => onNavigate(tab)}
+              disabled={!canOpenModule}
+              aria-label={canOpenModule ? label : `${label}, details unavailable for your role`}
+            >
               <span className="executive-funnel-step">STEP 0{index + 1}</span>
               <strong><AnimatedValue value={charts.pipelineFunnel[key]} /></strong>
               <span className="executive-funnel-label">{label}</span>
               <small>{description}</small>
             </button>
-          ))}
+            );
+          })}
         </div>
       </section>
 
@@ -285,10 +308,10 @@ export function DashboardView({ user, onNavigate, onCreateChallengeClick }: Dash
             <div className="executive-chart">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={charts.problemsBySector} margin={{ top: 10, right: 12, bottom: 4, left: -18 }}>
-                  <CartesianGrid vertical={false} stroke="#edf0f5" />
-                  <XAxis dataKey="sector" tick={{ fontSize: 10, fill: '#718096' }} axisLine={false} tickLine={false} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#8792a3' }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ border: '1px solid #e0e5ed', borderRadius: 7, fontSize: 11 }} />
+                  <CartesianGrid vertical={false} stroke="#e4eef1" />
+                  <XAxis dataKey="sector" tick={{ fontSize: 10, fill: '#5a7380' }} axisLine={false} tickLine={false} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#7a919c' }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ border: '1px solid #d5e4ea', borderRadius: 10, fontSize: 11, boxShadow: '0 8px 24px rgba(6,45,73,.1)' }} />
                   <Bar dataKey="count" name="Challenges" radius={[4, 4, 0, 0]} maxBarSize={36} isAnimationActive={!reducedMotion} animationDuration={650} animationEasing="ease-out">
                     {charts.problemsBySector.map((_entry, index) => <Cell key={`sector-${index}`} fill={SECTOR_COLORS[index % SECTOR_COLORS.length]} />)}
                   </Bar>
@@ -303,11 +326,11 @@ export function DashboardView({ user, onNavigate, onCreateChallengeClick }: Dash
             <div className="executive-chart">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={charts.procurementByDepartment} margin={{ top: 10, right: 12, bottom: 4, left: 0 }}>
-                  <CartesianGrid vertical={false} stroke="#edf0f5" />
-                  <XAxis dataKey="department_code" tick={{ fontSize: 10, fill: '#718096' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: '#8792a3' }} axisLine={false} tickLine={false} tickFormatter={(value: number) => `₹${(value / 10000000).toFixed(0)}Cr`} />
-                  <Tooltip contentStyle={{ border: '1px solid #e0e5ed', borderRadius: 7, fontSize: 11 }} formatter={(value) => [formatINR(Number(value)), 'Approved value']} />
-                  <Bar dataKey="total_value" name="Approved value" fill="#5a4ab7" radius={[4, 4, 0, 0]} maxBarSize={38} isAnimationActive={!reducedMotion} animationDuration={700} animationEasing="ease-out" />
+                  <CartesianGrid vertical={false} stroke="#e4eef1" />
+                  <XAxis dataKey="department_code" tick={{ fontSize: 10, fill: '#5a7380' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: '#7a919c' }} axisLine={false} tickLine={false} tickFormatter={(value: number) => `₹${(value / 10000000).toFixed(0)}Cr`} />
+                  <Tooltip contentStyle={{ border: '1px solid #d5e4ea', borderRadius: 10, fontSize: 11, boxShadow: '0 8px 24px rgba(6,45,73,.1)' }} formatter={(value) => [formatINR(Number(value)), 'Approved value']} />
+                  <Bar dataKey="total_value" name="Approved value" fill="#159b9a" radius={[4, 4, 0, 0]} maxBarSize={38} isAnimationActive={!reducedMotion} animationDuration={700} animationEasing="ease-out" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -348,7 +371,7 @@ export function DashboardView({ user, onNavigate, onCreateChallengeClick }: Dash
             <div className="executive-framework-footer"><span>Scale assessment threshold</span><strong>Score ≥ 80%</strong></div>
           </section>
 
-          <section className="executive-panel executive-next-action">
+          {canAccessApplications && <section className="executive-panel executive-next-action">
             <h3><Clock3 size={15} /> Next Pending Action</h3>
             {reviewsError ? <p>Pending review records are unavailable.</p> : pendingReviews.length === 0 ? (
               <p>No proposals are currently awaiting screening or evaluation.</p>
@@ -358,7 +381,7 @@ export function DashboardView({ user, onNavigate, onCreateChallengeClick }: Dash
                 <button onClick={() => onNavigate('applications')}>Review proposal <ArrowRight size={14} /></button>
               </>
             )}
-          </section>
+          </section>}
         </aside>
       </section>
     </div>

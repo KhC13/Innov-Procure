@@ -26,6 +26,7 @@ import { ScaleAssessmentModal } from '../components/ScaleAssessmentModal';
 import { generatePilotPdf } from '../utils/generatePilotPdf';
 import { PilotKPIDashboard } from '../components/PilotKPIDashboard';
 import { LayoutGrid, BarChart3 } from 'lucide-react';
+import { canAccessTab } from '../utils/roleAccess';
 
 interface PilotsViewProps {
   user?: User | null;
@@ -47,6 +48,7 @@ export function PilotsView({ user, onNavigateToProcurement }: PilotsViewProps) {
 
   // Check authorization: Procurement Officers & Super Admins can generate & download official Pilot PDF summary reports
   const isAuthorized = user?.role === 'SUPER_ADMIN' || user?.role === 'PROCUREMENT_OFFICER';
+  const canViewProcurement = canAccessTab(user?.role, 'procurement');
 
   const handleDownloadPdf = async (pilotToExport: Pilot) => {
     if (!isAuthorized) {
@@ -218,12 +220,14 @@ export function PilotsView({ user, onNavigateToProcurement }: PilotsViewProps) {
             </button>
           </div>
 
-          <button
-            onClick={onNavigateToProcurement}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-lg shadow-xs transition-colors"
-          >
-            View Procurement Kanban <ArrowUpRight className="w-4 h-4" />
-          </button>
+          {canViewProcurement && (
+            <button
+              onClick={onNavigateToProcurement}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-lg shadow-xs transition-colors"
+            >
+              View Procurement Kanban <ArrowUpRight className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -459,12 +463,14 @@ export function PilotsView({ user, onNavigateToProcurement }: PilotsViewProps) {
                     </div>
                     <p className="text-emerald-800 text-[11px] mt-0.5">{selectedPilot.scaleAssessment.summary}</p>
                   </div>
-                  <button
-                    onClick={onNavigateToProcurement}
-                    className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg font-semibold text-xs shrink-0"
-                  >
-                    View in Procurement
-                  </button>
+                  {canViewProcurement && (
+                    <button
+                      onClick={onNavigateToProcurement}
+                      className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg font-semibold text-xs shrink-0"
+                    >
+                      View in Procurement
+                    </button>
+                  )}
                 </div>
               )}
 

@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, Building2, CheckCircle2, Eye, EyeOff, KeyRound, Mail, Rocket, ShieldCheck, UserPlus, Users, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, Eye, EyeOff, KeyRound, Mail, ShieldCheck, UserPlus, X } from 'lucide-react';
 import { FormEvent, useState } from 'react';
 import { api } from '../services/api';
 import { User, UserRole } from '../types';
@@ -17,6 +17,9 @@ const roles: Array<{ value: UserRole; label: string; description: string }> = [
   { value: 'EVALUATOR', label: 'Evaluator', description: 'Review applications and score proposals' },
   { value: 'SUPER_ADMIN', label: 'Admin', description: 'Oversee the complete platform' },
 ];
+
+const selectableRoles = roles.filter((role) => role.value !== 'SUPER_ADMIN');
+const adminRole = roles.find((role) => role.value === 'SUPER_ADMIN');
 
 const demoAccounts: Record<UserRole, { email: string }> = {
   STARTUP: { email: 'startup@innovprocure.com' },
@@ -96,10 +99,39 @@ export function AuthPage({ onAuthenticated, onBackToLanding }: AuthPageProps) {
         <button className="auth-mobile-back" onClick={onBackToLanding}><ArrowLeft size={16} /> InnovProcure</button>
         <div className="auth-form-wrap">
           <div className="auth-form-heading"><span className="auth-eyebrow">Your workspace awaits</span><h2>{mode === 'login' ? 'Welcome back' : 'Create your account'}</h2><p>{mode === 'login' ? 'Sign in to continue to your role-based dashboard.' : 'Choose your role and join the innovation ecosystem.'}</p></div>
-          <div className="auth-mode-switch"><button className={mode === 'login' ? 'active' : ''} onClick={() => switchMode('login')}>Log in</button><button className={mode === 'signup' ? 'active' : ''} onClick={() => switchMode('signup')}>Sign up</button></div>
+          <div className="auth-mode-switch"><button className={mode === 'login' ? 'active' : ''} onClick={() => switchMode('login')}>Sign in</button><button className={mode === 'signup' ? 'active' : ''} onClick={() => switchMode('signup')}>Sign up</button></div>
 
-          <div className="auth-role-grid">
-            {roles.map((role) => <button type="button" key={role.value} className={selectedRole === role.value ? 'auth-role selected' : 'auth-role'} onClick={() => chooseRole(role.value)}><span className="auth-role-icon">{role.value === 'STARTUP' ? <Rocket size={16} /> : role.value === 'SUPER_ADMIN' ? <KeyRound size={16} /> : role.value === 'EVALUATOR' ? <CheckCircle2 size={16} /> : role.value === 'PROCUREMENT_OFFICER' ? <Building2 size={16} /> : <Users size={16} />}</span><span><strong>{role.label}</strong><small>{role.description}</small></span></button>)}
+          <div className="auth-role-picker">
+            <label className="auth-role-select">
+              <span>Workspace role</span>
+              <select
+                value={selectedRole === 'SUPER_ADMIN' ? '' : selectedRole}
+                onChange={(event) => {
+                  const role = selectableRoles.find((option) => option.value === event.target.value);
+                  if (role) chooseRole(role.value);
+                }}
+              >
+                <option value="" disabled>
+                  {selectedRole === 'SUPER_ADMIN' ? 'Admin selected separately' : 'Choose a role'}
+                </option>
+                {selectableRoles.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}
+              </select>
+              <small>
+                {selectedRole === 'SUPER_ADMIN'
+                  ? adminRole?.description
+                  : selectableRoles.find((role) => role.value === selectedRole)?.description}
+              </small>
+            </label>
+            {adminRole && (
+              <button
+                type="button"
+                className={selectedRole === adminRole.value ? 'auth-role selected' : 'auth-role'}
+                onClick={() => chooseRole(adminRole.value)}
+              >
+                <span className="auth-role-icon"><KeyRound size={16} /></span>
+                <span><strong>{adminRole.label}</strong><small>{adminRole.description}</small></span>
+              </button>
+            )}
           </div>
 
           <form onSubmit={handleSubmit} className="auth-form">
@@ -108,7 +140,7 @@ export function AuthPage({ onAuthenticated, onBackToLanding }: AuthPageProps) {
             <label><span>Password</span><div className="auth-input"><KeyRound size={16} /><input required minLength={6} type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter your password" /><button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Hide password' : 'Show password'}>{showPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button></div></label>
             {mode === 'signup' && <label><span>Confirm password</span><div className="auth-input"><KeyRound size={16} /><input required minLength={6} type={showPassword ? 'text' : 'password'} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder="Re-enter your password" /></div></label>}
             {error && <div className="auth-error"><X size={15} /> {error}</div>}
-            <button className="auth-submit" disabled={isSubmitting}>{isSubmitting ? 'Please wait...' : mode === 'login' ? 'Log in to dashboard' : 'Create account'} {!isSubmitting && <ArrowRight size={17} />}</button>
+            <button className="auth-submit" disabled={isSubmitting}>{isSubmitting ? 'Please wait...' : mode === 'login' ? 'Sign in to dashboard' : 'Create account'} {!isSubmitting && <ArrowRight size={17} />}</button>
           </form>
           {mode === 'login' && <p className="auth-demo-note">Demo access is prefilled for the selected role.</p>}
           <p className="auth-legal">By continuing, you agree to the platform's access and usage policies.</p>

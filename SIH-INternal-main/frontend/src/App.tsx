@@ -12,12 +12,15 @@ import { ProcurementView } from './pages/ProcurementView';
 import { AuditView } from './pages/AuditView';
 import { LandingPage } from './pages/LandingPage';
 import { AuthPage } from './pages/AuthPage';
+import { canAccessTab, canCreateChallenge, defaultTabByRole } from './utils/roleAccess';
 
 export default function App() {
   const [appView, setAppView] = useState<'landing' | 'auth' | 'dashboard'>('landing');
   const [currentUser, setCurrentUser] = useState<User | null>(getStoredUser());
   const [authReady, setAuthReady] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const [activeTab, setActiveTab] = useState<string>(() =>
+    currentUser ? defaultTabByRole[currentUser.role] : 'dashboard'
+  );
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -59,6 +62,7 @@ export default function App() {
         onBackToLanding={() => setAppView('landing')}
         onAuthenticated={(user) => {
           setCurrentUser(user);
+          setActiveTab(defaultTabByRole[user.role]);
           setAuthReady(true);
           setAppView('dashboard');
         }}
@@ -101,6 +105,7 @@ export default function App() {
       if (!demoPassword) return;
       const data = await api.login(email, demoPassword);
       setCurrentUser(data.user);
+      setActiveTab(defaultTabByRole[data.user.role]);
       setAuthReady(true);
       fetchNotifications();
     } catch (err: any) {
@@ -108,46 +113,54 @@ export default function App() {
     }
   };
 
-  const canAccessAuditTrail = currentUser?.role === 'SUPER_ADMIN';
+  const canAccessAuditTrail = canAccessTab(currentUser?.role, 'audit');
+
+  const navigateToTab = (tab: string) => {
+    if (!canAccessTab(currentUser?.role, tab)) return;
+    setActiveTab(tab);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCreateChallengeClick = () => {
+    if (!canCreateChallenge(currentUser?.role)) return;
+    setCreateChallengeTrigger((prev) => prev + 1);
+    navigateToTab('problems');
+  };
 
   const handleNavigateToAIWithProblem = (problemId: string) => {
+    if (!canAccessTab(currentUser?.role, 'ai-matching')) return;
     setSelectedProblemIdForAI(problemId);
-    setActiveTab('ai-matching');
+    navigateToTab('ai-matching');
   };
 
   const handleNavigateToStartup = (startupId: string) => {
+    if (!canAccessTab(currentUser?.role, 'startups')) return;
     setSelectedStartupId(startupId);
-    setActiveTab('startups');
+    navigateToTab('startups');
   };
 
   const handleGlobalSearch = (query: string) => {
     setSearchQuery(query);
     if (activeTab !== 'problems' && activeTab !== 'startups') {
-      setActiveTab('problems');
+      navigateToTab(canAccessTab(currentUser?.role, 'problems') ? 'problems' : 'startups');
     }
   };
 
+  const resolvedTab = currentUser && canAccessTab(currentUser.role, activeTab)
+    ? activeTab
+    : currentUser ? defaultTabByRole[currentUser.role] : 'dashboard';
+
   return (
-    <div className="app-shell min-h-screen bg-slate-100 text-slate-900 font-sans antialiased">
+    <div className="app-shell min-h-screen antialiased">
       <Header
         user={currentUser}
-        activeTab={canAccessAuditTrail ? activeTab : activeTab === 'audit' ? 'dashboard' : activeTab}
-        onTabChange={(tab) => {
-          if (tab === 'audit' && !canAccessAuditTrail) {
-            setActiveTab('dashboard');
-            return;
-          }
-          setActiveTab(tab);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
+        activeTab={resolvedTab}
+        onTabChange={navigateToTab}
         notifications={notifications}
         onMarkNotificationRead={handleMarkNotificationRead}
         onMarkAllNotificationsRead={handleMarkAllNotificationsRead}
         onSwitchUser={handleSwitchUser}
-        onCreateChallengeClick={() => {
-          setActiveTab('problems');
-          setCreateChallengeTrigger((prev) => prev + 1);
-        }}
+        onCreateChallengeClick={handleCreateChallengeClick}
         onGlobalSearch={handleGlobalSearch}
         searchQuery={searchQuery}
         onGoToLanding={() => setAppView('landing')}
@@ -155,71 +168,68 @@ export default function App() {
 
       <main className="app-main">
         <div className="app-main-inner">
-        {activeTab === 'dashboard' && (
-          <DashboardView
-            user={currentUser}
-            onNavigate={(tab) => setActiveTab(tab)}
-            onCreateChallengeClick={() => {
-              setActiveTab('problems');
-              setCreateChallengeTrigger((prev) => prev + 1);
-            }}
-          />
-        )}
+          <div key={resolvedTab} className="app-page-enter">
+            {resolvedTab === 'dashboard' && (
+              <DashboardView
+                user={currentUser}
+                onNavigate={navigateToTab}
+                onCreateChallengeClick={handleCreateChallengeClick}
+              />
+            )}
 
-        {activeTab === 'problems' && (
-          <ProblemsView
-            key={`problems-${createChallengeTrigger}`}
-            user={currentUser}
-            onSelectProblemForAI={handleNavigateToAIWithProblem}
-          />
-        )}
+            {resolvedTab === 'problems' && (
+              <ProblemsView
+                key={`problems-${createChallengeTrigger}`}
+                user={currentUser}
+                onSelectProblemForAI={handleNavigateToAIWithProblem}
+              />
+            )}
 
-        {activeTab === 'ai-matching' && (
-          <AIMatchingView
-            selectedProblemId={selectedProblemIdForAI}
-            onNavigateToStartup={handleNavigateToStartup}
-            onNavigateToApplications={() => setActiveTab('applications')}
-          />
-        )}
+            {resolvedTab === 'ai-matching' && (
+              <AIMatchingView
+                selectedProblemId={selectedProblemIdForAI}
+                onNavigateToStartup={handleNavigateToStartup}
+                onNavigateToApplications={() => navigateToTab('applications')}
+              />
+            )}
 
-        {activeTab === 'startups' && (
-          <StartupsView
-            initialStartupId={selectedStartupId}
-          />
-        )}
+            {resolvedTab === 'startups' && (
+              <StartupsView
+                initialStartupId={selectedStartupId}
+              />
+            )}
 
-        {activeTab === 'applications' && (
-          <ApplicationsView
-            onNavigateToProblem={(probId) => {
-              setActiveTab('problems');
-            }}
-            onNavigateToStartup={handleNavigateToStartup}
-          />
-        )}
+            {resolvedTab === 'applications' && (
+              <ApplicationsView
+                onNavigateToProblem={() => navigateToTab('problems')}
+                onNavigateToStartup={handleNavigateToStartup}
+              />
+            )}
 
-        {activeTab === 'pilots' && (
-          <PilotsView
-            user={currentUser}
-            onNavigateToProcurement={() => setActiveTab('procurement')}
-          />
-        )}
+            {resolvedTab === 'pilots' && (
+              <PilotsView
+                user={currentUser}
+                onNavigateToProcurement={() => navigateToTab('procurement')}
+              />
+            )}
 
-        {activeTab === 'procurement' && <ProcurementView />}
+            {resolvedTab === 'procurement' && <ProcurementView />}
 
-        {canAccessAuditTrail && activeTab === 'audit' && <AuditView />}
+            {canAccessAuditTrail && resolvedTab === 'audit' && <AuditView />}
+          </div>
         </div>
       </main>
 
       <footer className="app-footer">
         <div className="app-footer-inner">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-800">InnovProcure</span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-bold" style={{ color: 'var(--app-navy)' }}>InnovProcure</span>
             <span>·</span>
             <span>National Innovation Procurement Infrastructure</span>
             <span>·</span>
-            <span className="app-footer-status">Platform workspace</span>
+            <span className="app-footer-status"><span /> Platform workspace</span>
           </div>
-          <div className="text-[11px] text-slate-400">
+          <div className="text-[11px]" style={{ color: 'var(--app-muted)' }}>
             Compliant with General Financial Rules (GFR 2017) Innovation Rule 194 & Public Procurement Policy
           </div>
         </div>
