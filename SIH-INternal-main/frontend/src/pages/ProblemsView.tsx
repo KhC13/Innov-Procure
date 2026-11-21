@@ -182,7 +182,7 @@ export function ProblemsView({ user, onSelectProblemForAI, initialSelectedId }: 
       setNewDesc('');
       fetchProblems();
     } catch (err: any) {
-      alert('Error creating problem: ' + err.message);
+      alert('Unable to create the problem. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -213,7 +213,7 @@ export function ProblemsView({ user, onSelectProblemForAI, initialSelectedId }: 
       alert('Proposal submitted successfully! It is now available under Screening & Review.');
       fetchProblems();
     } catch (err: any) {
-      alert('Error submitting application: ' + err.message);
+      alert('Unable to submit the application. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

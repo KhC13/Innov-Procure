@@ -7,7 +7,8 @@
 | Google Gemini 2.5 Flash | AI-based startup–problem matching |
 | Google AI Studio | AI prototyping and code generation |
 | GitHub Copilot | AI-assisted coding in VS Code; exact model unverified |
-| ChatGPT | Research, technical assistance, and development support |
+| Claude | Research, technical assistance, and development support |
+
 
 ## 2. AI Integration
 

@@ -15,25 +15,45 @@ import {
 } from '../middleware/auth.js';
 import { matchProblemAndStartup } from '../ai/matcher.js';
 import { resetDatabaseToDemo } from '../services/seedData.js';
+import { sendInternalError } from '../middleware/errorHandling.js';
+import {
+  createSafeFilename,
+  canAccessStartupDocuments,
+  finalizeUploadedFile,
+  removeUploadedFiles,
+  resolveUploadDir,
+  MAX_UPLOAD_SIZE,
+} from '../utils/uploadSecurity.js';
 
 export const router = Router();
 
 // Configure local uploads folder
-const uploadDir = path.resolve(process.cwd(), process.env.UPLOAD_DIR || 'backend/uploads');
+const uploadDir = resolveUploadDir();
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, uploadDir),
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const base = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9_-]/g, '_');
-    cb(null, `${base}-${Date.now()}${ext}`);
-  },
+  filename: (_req, _file, cb) => cb(null, createSafeFilename('tmp')),
 });
 const upload = multer({
   storage,
-  limits: { fileSize: 25 * 1024 * 1024 }, // 25 MB max
+  limits: { fileSize: MAX_UPLOAD_SIZE, files: 5 },
+  fileFilter: (_req, file, cb) => {
+    const allowedMimeTypes = new Set([
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'image/jpeg',
+      'image/png',
+    ]);
+    if (!allowedMimeTypes.has(file.mimetype) || file.originalname.length > 255) {
+      return cb(null, false);
+    }
+    cb(null, true);
+  },
 });
 
 /* =========================================================================
@@ -86,7 +106,7 @@ router.post('/auth/login', async (req, res) => {
     });
   } catch (err: any) {
     console.error('Login error:', err);
-    return res.status(500).json({ error: 'Server error during login: ' + err.message });
+    return sendInternalError(res, 'Login', err);
   }
 });
 
@@ -130,7 +150,7 @@ router.post('/auth/register', async (req, res) => {
     });
   } catch (err: any) {
     console.error('Register error:', err);
-    return res.status(500).json({ error: 'Registration failed: ' + err.message });
+    return sendInternalError(res, 'Registration', err);
   }
 });
 
@@ -157,7 +177,7 @@ router.get('/auth/me', authMiddleware, async (req: AuthRequest, res: Response) =
       avatarUrl: u.avatar_url,
     });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'Auth me', err);
   }
 });
 
@@ -275,7 +295,7 @@ router.get('/auth/demo-users', async (_req, res) => {
     `);
     return res.json({ users: result.rows });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'RBAC matrix', err);
   }
 });
 
@@ -334,7 +354,7 @@ router.get('/problems', async (req, res) => {
     return res.json({ problems: problemsWithMeta, total: problemsWithMeta.length });
   } catch (err: any) {
     console.error('Error fetching problems:', err);
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'List problems', err);
   }
 });
 
@@ -390,7 +410,7 @@ router.get('/problems/:id', async (req, res) => {
     });
   } catch (err: any) {
     console.error('Error getting problem detail:', err);
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'Problem detail', err);
   }
 });
 
@@ -495,7 +515,7 @@ router.post('/problems', authMiddleware, async (req: AuthRequest, res: Response)
     return res.status(201).json({ id: probId, problemCode: code, message: 'Problem created successfully' });
   } catch (err: any) {
     console.error('Error creating problem:', err);
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'Create problem', err);
   }
 });
 
@@ -523,7 +543,7 @@ router.put('/problems/:id', authMiddleware, async (req: AuthRequest, res: Respon
     await logAudit(req.user, 'UPDATE_PROBLEM', 'ProblemStatement', id, { title, status }, req.ip);
     return res.json({ message: 'Problem updated successfully' });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'Update problem', err);
   }
 });
 
@@ -543,7 +563,7 @@ router.post('/problems/:id/publish', authMiddleware, async (req: AuthRequest, re
 
     return res.json({ message: 'Problem published successfully' });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'Publish problem', err);
   }
 });
 
@@ -554,7 +574,7 @@ router.post('/problems/:id/close', authMiddleware, async (req: AuthRequest, res:
     await logAudit(req.user, 'CLOSE_PROBLEM', 'ProblemStatement', id, {}, req.ip);
     return res.json({ message: 'Problem closed successfully' });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'Close problem', err);
   }
 });
 
@@ -603,7 +623,7 @@ router.get('/startups', async (req, res) => {
 
     return res.json({ startups: rows, total: rows.length });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'List startups', err);
   }
 });
 
@@ -652,13 +672,17 @@ router.get('/startups/:id', async (req, res) => {
       },
     });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'Startup detail', err);
   }
 });
 
 router.post('/startups/:id/documents', authMiddleware, upload.array('documents', 5), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
+    if (!canAccessStartupDocuments(req.user?.role, req.user?.startupId, id)) {
+      return res.status(403).json({ error: 'Forbidden: You are not authorized to upload documents for this startup.' });
+    }
+
     const startupRes = await query('SELECT id FROM startups WHERE id = $1', [id]);
     if (startupRes.rows.length === 0) {
       return res.status(404).json({ error: 'Startup not found' });
@@ -669,8 +693,17 @@ router.post('/startups/:id/documents', authMiddleware, upload.array('documents',
       return res.status(400).json({ error: 'At least one document file is required.' });
     }
 
-    const savedDocs = [] as any[];
+    const validatedFiles = [] as any[];
     for (const file of files) {
+      if (!finalizeUploadedFile(file)) {
+        removeUploadedFiles(files);
+        return res.status(400).json({ error: 'Invalid or unsupported document file content.' });
+      }
+      validatedFiles.push(file);
+    }
+
+    const savedDocs = [] as any[];
+    for (const file of validatedFiles) {
       const fileUrl = `/uploads/${path.basename(file.path)}`;
       const docId = `startup-doc-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
 
@@ -694,7 +727,8 @@ router.post('/startups/:id/documents', authMiddleware, upload.array('documents',
     return res.status(201).json({ message: 'Startup documents uploaded successfully.', documents: savedDocs });
   } catch (err: any) {
     console.error('Upload startup documents error:', err);
-    return res.status(500).json({ error: err.message });
+    if (Array.isArray((req as any).files)) removeUploadedFiles((req as any).files);
+    return sendInternalError(res, 'Upload startup documents', err);
   }
 });
 
@@ -743,7 +777,7 @@ router.get('/applications', optionalAuthMiddleware, async (req: AuthRequest, res
     const result = await query(sql, params);
     return res.json({ applications: result.rows });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'List applications', err);
   }
 });
 
@@ -789,7 +823,7 @@ router.get('/applications/:id', authMiddleware, async (req: AuthRequest, res: Re
       },
     });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'Application detail', err);
   }
 });
 
@@ -855,7 +889,7 @@ router.post('/applications', authMiddleware, async (req: AuthRequest, res: Respo
 
     return res.status(201).json({ id: appId, message: 'Application submitted successfully' });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'Create application', err);
   }
 });
 
@@ -900,7 +934,7 @@ router.post('/applications/:id/shortlist', authMiddleware, async (req: AuthReque
 
     return res.json({ message: 'Application successfully shortlisted' });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'Shortlist application', err);
   }
 });
 
@@ -913,7 +947,7 @@ router.post('/applications/:id/reject', authMiddleware, async (req: AuthRequest,
     await logAudit(req.user, 'REJECT_APPLICATION', 'Application', id, { reason }, req.ip);
     return res.json({ message: 'Application rejected' });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'Reject application', err);
   }
 });
 
@@ -939,7 +973,7 @@ router.get('/matches/problem/:problemId', async (req, res) => {
 
     return res.json({ matches: matchesRes.rows });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'Problem matches', err);
   }
 });
 
@@ -1061,7 +1095,7 @@ router.post('/matches/generate', authMiddleware, async (req: AuthRequest, res: R
     return res.json({ matches: matchResults, message: 'AI matches generated successfully' });
   } catch (err: any) {
     console.error('Error generating AI matches:', err);
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'Generate matches', err);
   }
 });
 
@@ -1100,7 +1134,7 @@ router.get('/evaluations', optionalAuthMiddleware, async (req: AuthRequest, res:
     const result = await query(sql, params);
     return res.json({ evaluations: result.rows });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'List evaluations', err);
   }
 });
 
@@ -1184,7 +1218,7 @@ router.post('/evaluations', authMiddleware, async (req: AuthRequest, res: Respon
     return res.status(201).json({ id: evalId, totalWeightedScore: finalWeightedScore, message: 'Evaluation submitted successfully' });
   } catch (err: any) {
     console.error('Evaluation submit error:', err);
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'Submit evaluation', err);
   }
 });
 
@@ -1222,7 +1256,7 @@ router.get('/pilots', async (req, res) => {
     const result = await query(sql, params);
     return res.json({ pilots: result.rows });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'List pilots', err);
   }
 });
 
@@ -1266,7 +1300,7 @@ router.get('/pilots/:id', async (req, res) => {
       },
     });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'Pilot detail', err);
   }
 });
 
@@ -1348,7 +1382,7 @@ router.post('/pilots', authMiddleware, async (req: AuthRequest, res: Response) =
     return res.status(201).json({ id: pilotId, message: 'Pilot created and activated successfully' });
   } catch (err: any) {
     console.error('Error creating pilot:', err);
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'Create pilot', err);
   }
 });
 
@@ -1368,7 +1402,7 @@ router.post('/pilots/:id/kpis', authMiddleware, async (req: AuthRequest, res: Re
 
     return res.status(201).json({ id: kpiId, message: 'KPI added successfully' });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'Add pilot KPI', err);
   }
 });
 
@@ -1390,7 +1424,7 @@ router.put('/kpis/:id', authMiddleware, async (req: AuthRequest, res: Response) 
 
     return res.json({ message: 'KPI updated successfully', status });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'Update KPI', err);
   }
 });
 
@@ -1416,7 +1450,7 @@ router.get('/scale/:pilotId', async (req, res) => {
     }
     return res.json({ assessment: assessmentRes.rows[0] });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'Scale detail', err);
   }
 });
 
@@ -1506,7 +1540,7 @@ router.post('/scale', authMiddleware, async (req: AuthRequest, res: Response) =>
 
     return res.status(201).json({ id: saId, overallScore, readinessLevel, message: 'Scale assessment computed successfully' });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'Create scale assessment', err);
   }
 });
 
@@ -1546,7 +1580,7 @@ router.get('/procurement', async (req, res) => {
     const result = await query(sql, params);
     return res.json({ procurements: result.rows });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'List procurement', err);
   }
 });
 
@@ -1595,7 +1629,7 @@ router.get('/procurement/:id', async (req, res) => {
       },
     });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'Procurement detail', err);
   }
 });
 
@@ -1658,7 +1692,7 @@ router.post('/procurement', authMiddleware, async (req: AuthRequest, res: Respon
 
     return res.status(201).json({ id: procId, message: 'Procurement initialized successfully' });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'Create procurement', err);
   }
 });
 
@@ -1696,7 +1730,7 @@ router.post('/procurement/:id/stage', authMiddleware, async (req: AuthRequest, r
 
     return res.json({ message: `Procurement stage moved to ${toStage}` });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'Update procurement stage', err);
   }
 });
 
@@ -1719,7 +1753,7 @@ router.get('/contracts', async (_req, res) => {
     );
     return res.json({ contracts: result.rows });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'List contracts', err);
   }
 });
 
@@ -1761,7 +1795,7 @@ router.post('/contracts', authMiddleware, async (req: AuthRequest, res: Response
 
     return res.status(201).json({ id: contractId, contractNumber: cNum, message: 'Contract created successfully' });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'Create contract', err);
   }
 });
 
@@ -1774,7 +1808,7 @@ router.get('/departments', async (_req, res) => {
     const result = await query('SELECT * FROM departments ORDER BY name ASC');
     return res.json({ departments: result.rows });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'List departments', err);
   }
 });
 
@@ -1802,7 +1836,7 @@ router.get('/departments/:id', async (req, res) => {
       },
     });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'Department detail', err);
   }
 });
 
@@ -1832,7 +1866,7 @@ router.get('/notifications', optionalAuthMiddleware, async (req: AuthRequest, re
     const unreadCount = result.rows.filter((n) => !n.is_read).length;
     return res.json({ notifications: result.rows, unreadCount });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'List notifications', err);
   }
 });
 
@@ -1842,7 +1876,7 @@ router.put('/notifications/:id/read', authMiddleware, async (req, res) => {
     await query('UPDATE notifications SET is_read = true WHERE id = $1', [id]);
     return res.json({ message: 'Marked as read' });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'Mark notification read', err);
   }
 });
 
@@ -1854,7 +1888,7 @@ router.put('/notifications/read-all', authMiddleware, async (req: AuthRequest, r
     );
     return res.json({ message: 'All notifications marked as read' });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'Mark all notifications read', err);
   }
 });
 
@@ -1863,7 +1897,7 @@ router.get('/audit-logs', authMiddleware, requireRoles('SUPER_ADMIN'), async (_r
     const result = await query('SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 100');
     return res.json({ logs: result.rows });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'Audit logs', err);
   }
 });
 
@@ -1971,7 +2005,7 @@ router.get('/analytics/dashboard', async (req, res) => {
     });
   } catch (err: any) {
     console.error('Analytics dashboard error:', err);
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'Analytics dashboard', err);
   }
 });
 
@@ -1979,10 +2013,13 @@ router.get('/analytics/dashboard', async (req, res) => {
    14. FILE MANAGEMENT
    ========================================================================= */
 
-router.post('/files/upload', upload.single('file'), async (req, res) => {
+router.post('/files/upload', authMiddleware, upload.single('file'), async (req: AuthRequest, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
+    }
+    if (!finalizeUploadedFile(req.file)) {
+      return res.status(400).json({ error: 'Invalid or unsupported file content.' });
     }
 
     const fileId = `file-${Date.now()}`;
@@ -2003,7 +2040,8 @@ router.post('/files/upload', upload.single('file'), async (req, res) => {
       url: fileUrl,
     });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    if (req.file) removeUploadedFiles([req.file]);
+    return sendInternalError(res, 'File upload', err);
   }
 });
 
@@ -2017,7 +2055,7 @@ router.post('/system/reset-demo', async (_req, res) => {
     return res.json({ success: true, message: 'Database successfully reset to curated demo dataset.' });
   } catch (err: any) {
     console.error('System reset error:', err);
-    return res.status(500).json({ error: err.message });
+    return sendInternalError(res, 'Reset demo', err);
   }
 });
 

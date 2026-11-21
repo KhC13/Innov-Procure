@@ -576,6 +576,7 @@ Example:
 DATABASE_URL=your_postgresql_connection_string
 JWT_SECRET=your_secret
 JWT_EXPIRES_IN=1d
+DEMO_PASSWORD=your_demo_password
 GEMINI_API_KEY=your_gemini_api_key
 CORS_ORIGINS=http://localhost:3000
 
@@ -664,7 +665,7 @@ procurement@innovprocure.gov.in
 
 Demo password:
 
-InnovProcure@123
+Set `DEMO_PASSWORD` in the server-only `.env` file. It is never shipped to the frontend.
 
 Do not use demo credentials in production.
 

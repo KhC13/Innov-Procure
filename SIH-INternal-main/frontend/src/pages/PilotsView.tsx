@@ -72,7 +72,7 @@ export function PilotsView({ user, onNavigateToProcurement }: PilotsViewProps) {
       generatePilotPdf(fullPilot, user);
     } catch (err: any) {
       console.error('Failed to generate PDF summary report:', err);
-      alert('Error generating PDF report: ' + (err.message || 'Unknown error'));
+      alert('Unable to generate the PDF report.');
     } finally {
       setGeneratingPdfId(null);
     }
@@ -119,7 +119,7 @@ export function PilotsView({ user, onNavigateToProcurement }: PilotsViewProps) {
       }
       fetchPilots();
     } catch (err: any) {
-      alert('Error updating KPI: ' + err.message);
+      alert('Unable to update the KPI. Please try again.');
     }
   };
 

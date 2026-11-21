@@ -94,7 +94,7 @@ export function ProcurementView() {
         loadProcurementDetails(stageModalProc.id);
       }
     } catch (err: any) {
-      alert('Error updating stage: ' + err.message);
+      alert('Unable to update the procurement stage. Please try again.');
     } finally {
       setIsUpdatingStage(false);
     }
@@ -122,7 +122,7 @@ export function ProcurementView() {
       alert(`Contract ${generatedCode} successfully signed & awarded!`);
       fetchData();
     } catch (err: any) {
-      alert('Error creating contract: ' + err.message);
+      alert('Unable to create the contract. Please try again.');
     } finally {
       setIsCreatingContract(false);
     }

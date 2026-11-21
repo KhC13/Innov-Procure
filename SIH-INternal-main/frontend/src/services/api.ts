@@ -56,14 +56,17 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
   const res = await fetch(url, { ...options, headers });
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.error || `HTTP error ${res.status}: ${res.statusText}`);
+    if (res.status >= 500) {
+      throw new Error('An unexpected server error occurred.');
+    }
+    throw new Error(errorData.error || 'The request could not be completed.');
   }
   return res.json();
 }
 
 // 1. Auth API
 export const api = {
-  async login(email: string, password = 'InnovProcure@123') {
+  async login(email: string, password: string) {
     const data = await fetchWithAuth('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
@@ -152,7 +155,10 @@ export const api = {
 
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      throw new Error(data.error || `HTTP error ${res.status}: ${res.statusText}`);
+      if (res.status >= 500) {
+        throw new Error('An unexpected server error occurred.');
+      }
+      throw new Error(data.error || 'The file upload could not be completed.');
     }
     return data;
   },

@@ -92,7 +92,7 @@ export function ScaleAssessmentModal({ pilot, onClose, onSuccess }: ScaleAssessm
       onSuccess();
       onClose();
     } catch (err: any) {
-      alert('Error recording assessment: ' + err.message);
+      alert('Unable to record the assessment. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

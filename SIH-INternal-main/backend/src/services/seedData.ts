@@ -63,7 +63,11 @@ export async function seedDatabase(force = false) {
     console.log('Clearing database and populating concise, realistic InnovProcure demo dataset...');
     await clearAllData();
 
-    const passwordHash = await passwordService.hash('InnovProcure@123');
+    const demoPassword = process.env.DEMO_PASSWORD;
+    if (!demoPassword || demoPassword.length < 12) {
+      throw new Error('DEMO_PASSWORD must be set to at least 12 characters.');
+    }
+    const passwordHash = await passwordService.hash(demoPassword);
 
     // 1. Core Departments (3 demo ministries)
     const departments = [

@@ -18,12 +18,12 @@ const roles: Array<{ value: UserRole; label: string; description: string }> = [
   { value: 'SUPER_ADMIN', label: 'Admin', description: 'Oversee the complete platform' },
 ];
 
-const demoAccounts: Record<UserRole, { email: string; password: string }> = {
-  STARTUP: { email: 'startup@innovprocure.com', password: 'InnovProcure@123' },
-  GOVERNMENT_OFFICER: { email: 'officer@innovprocure.gov.in', password: 'InnovProcure@123' },
-  PROCUREMENT_OFFICER: { email: 'procurement@innovprocure.gov.in', password: 'InnovProcure@123' },
-  EVALUATOR: { email: 'evaluator@innovprocure.gov.in', password: 'InnovProcure@123' },
-  SUPER_ADMIN: { email: 'admin@innovprocure.gov.in', password: 'InnovProcure@123' },
+const demoAccounts: Record<UserRole, { email: string }> = {
+  STARTUP: { email: 'startup@innovprocure.com' },
+  GOVERNMENT_OFFICER: { email: 'officer@innovprocure.gov.in' },
+  PROCUREMENT_OFFICER: { email: 'procurement@innovprocure.gov.in' },
+  EVALUATOR: { email: 'evaluator@innovprocure.gov.in' },
+  SUPER_ADMIN: { email: 'admin@innovprocure.gov.in' },
 };
 
 export function AuthPage({ onAuthenticated, onBackToLanding }: AuthPageProps) {
@@ -31,7 +31,7 @@ export function AuthPage({ onAuthenticated, onBackToLanding }: AuthPageProps) {
   const [selectedRole, setSelectedRole] = useState<UserRole>('STARTUP');
   const [name, setName] = useState('');
   const [email, setEmail] = useState(demoAccounts.STARTUP.email);
-  const [password, setPassword] = useState(demoAccounts.STARTUP.password);
+  const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -41,7 +41,7 @@ export function AuthPage({ onAuthenticated, onBackToLanding }: AuthPageProps) {
     setSelectedRole(role);
     if (mode === 'login') {
       setEmail(demoAccounts[role].email);
-      setPassword(demoAccounts[role].password);
+      setPassword('');
     }
   };
 
@@ -54,7 +54,7 @@ export function AuthPage({ onAuthenticated, onBackToLanding }: AuthPageProps) {
       setConfirmPassword('');
     } else {
       setEmail(demoAccounts[selectedRole].email);
-      setPassword(demoAccounts[selectedRole].password);
+      setPassword('');
     }
   };
 

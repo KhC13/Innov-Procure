@@ -92,7 +92,7 @@ export function AIMatchingView({
         setSelectedMatch(res.matches[0]);
       }
     } catch (err: any) {
-      alert('Error running AI matching: ' + err.message);
+      alert('Unable to run AI matching. Please try again.');
     } finally {
       setIsGenerating(false);
     }
@@ -108,7 +108,7 @@ export function AIMatchingView({
       setShortlistedIds((prev) => new Set([...prev, match.application_id!]));
       alert(`${match.company_name} has been shortlisted for technical evaluation & pilot consideration!`);
     } catch (err: any) {
-      alert('Error shortlisting: ' + err.message);
+      alert('Unable to shortlist the application. Please try again.');
     }
   };
 

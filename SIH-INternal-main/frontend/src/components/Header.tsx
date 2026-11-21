@@ -206,7 +206,7 @@ export function Header({
                       await api.resetDemoData();
                       window.location.reload();
                     } catch (error) {
-                      alert(`Failed to reset: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                      alert('Unable to reset the demo. Please try again.');
                     }
                   }}
                 >

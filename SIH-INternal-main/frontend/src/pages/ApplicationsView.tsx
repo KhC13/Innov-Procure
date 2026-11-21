@@ -91,7 +91,7 @@ export function ApplicationsView({ onNavigateToProblem, onNavigateToStartup }: A
         loadAppDetails(appId);
       }
     } catch (err: any) {
-      alert('Error shortlisting: ' + err.message);
+      alert('Unable to shortlist the application. Please try again.');
     }
   };
 
@@ -106,7 +106,7 @@ export function ApplicationsView({ onNavigateToProblem, onNavigateToStartup }: A
         setSelectedApp(null);
       }
     } catch (err: any) {
-      alert('Error rejecting: ' + err.message);
+      alert('Unable to reject the application. Please try again.');
     }
   };
 
@@ -133,7 +133,7 @@ export function ApplicationsView({ onNavigateToProblem, onNavigateToStartup }: A
       alert('Evaluation score submitted successfully to the committee record!');
       fetchApplications();
     } catch (err: any) {
-      alert('Error submitting evaluation: ' + err.message);
+      alert('Unable to submit the evaluation. Please try again.');
     } finally {
       setIsSubmittingEval(false);
     }

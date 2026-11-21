@@ -97,12 +97,14 @@ export default function App() {
 
     try {
       const email = roleEmailMap[role];
-      const data = await api.login(email, 'InnovProcure@123');
+      const demoPassword = window.prompt('Enter the configured demo password');
+      if (!demoPassword) return;
+      const data = await api.login(email, demoPassword);
       setCurrentUser(data.user);
       setAuthReady(true);
       fetchNotifications();
     } catch (err: any) {
-      alert('Error switching user: ' + err.message);
+      alert('Unable to switch users. Please try again.');
     }
   };
 

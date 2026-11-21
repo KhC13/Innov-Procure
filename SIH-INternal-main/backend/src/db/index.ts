@@ -72,10 +72,28 @@ export async function getDb() {
 export async function query<T = any>(text: string, params: any[] = []): Promise<{ rows: T[]; rowCount: number }> {
   const { pool, pglite } = await getDb();
   if (pool) {
-    const res = await pool.query(text, params);
-    return { rows: res.rows as T[], rowCount: res.rowCount ?? res.rows.length };
+    try {
+      const res = await pool.query(text, params);
+      return { rows: res.rows as T[], rowCount: res.rowCount ?? res.rows.length };
+    } catch (err) {
+      console.warn('PostgreSQL query failed; falling back to embedded PGlite.', (err as Error).message);
+      if (poolClient) {
+        try {
+          await poolClient.end();
+        } catch {
+          // no-op
+        }
+        poolClient = null;
+      }
+
+      const fallback = await getDb();
+      if (fallback.pglite) {
+        const res = await fallback.pglite.query<T>(text, params);
+        return { rows: res.rows, rowCount: res.rows.length };
+      }
+      throw err;
+    }
   } else if (pglite) {
-    // PGlite expects params formatted
     const res = await pglite.query<T>(text, params);
     return { rows: res.rows, rowCount: res.rows.length };
   }
@@ -85,7 +103,26 @@ export async function query<T = any>(text: string, params: any[] = []): Promise<
 export async function exec(text: string): Promise<void> {
   const { pool, pglite } = await getDb();
   if (pool) {
-    await pool.query(text);
+    try {
+      await pool.query(text);
+    } catch (err) {
+      console.warn('PostgreSQL exec failed; falling back to embedded PGlite.', (err as Error).message);
+      if (poolClient) {
+        try {
+          await poolClient.end();
+        } catch {
+          // no-op
+        }
+        poolClient = null;
+      }
+
+      const fallback = await getDb();
+      if (fallback.pglite) {
+        await fallback.pglite.exec(text);
+        return;
+      }
+      throw err;
+    }
   } else if (pglite) {
     await pglite.exec(text);
   }

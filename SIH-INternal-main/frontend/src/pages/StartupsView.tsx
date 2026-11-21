@@ -103,7 +103,7 @@ export function StartupsView({ initialStartupId }: StartupsViewProps) {
       alert('Startup documents uploaded successfully.');
       event.target.value = '';
     } catch (err: any) {
-      alert('Failed to upload startup document: ' + (err.message || 'Unknown error'));
+      alert('Unable to upload the startup document. Please try again.');
     } finally {
       setUploadingDocs(false);
     }
