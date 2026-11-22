@@ -244,7 +244,7 @@ export function DashboardView({ user, onNavigate, onCreateChallengeClick }: Dash
           <p>Track public-sector challenges, startup proposals and the journey from pilot to procurement.</p>
           <div className="executive-welcome-actions">
             {canPublishChallenges && <button className="executive-button-primary" onClick={onCreateChallengeClick}><Building2 size={15} /> Publish New Challenge</button>}
-            {canAccessAIMatching && <button className="executive-button-secondary" onClick={() => onNavigate('ai-matching')}><Sparkles size={15} /> Launch AI Matching</button>}
+            {canAccessAIMatching && <button className="executive-button-secondary" onClick={() => onNavigate('ai-matching')}>Launch AI Matching</button>}
             {canAccessProcurement && <button className="executive-button-secondary" onClick={() => onNavigate('procurement')}><FileText size={15} /> View Procurement</button>}
           </div>
         </div>

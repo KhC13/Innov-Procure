@@ -12,15 +12,18 @@ import { query } from './db/index.js';
 import { canAccessStartupDocuments, isSafeFilename, resolveUploadDir } from './utils/uploadSecurity.js';
 import { genericErrorHandler, sendInternalError } from './middleware/errorHandling.js';
 import { authenticatedRateLimit, publicRateLimit, tieredRateLimit } from './middleware/rateLimiting.js';
+import { securityHeaders } from './middleware/securityHeaders.js';
 
 export async function createApp() {
   const app = express();
+  app.set('trust proxy', process.env.TRUST_PROXY === 'true' ? 1 : false);
   const allowedOrigins = (process.env.CORS_ORIGINS || '')
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
 
-  // Basic middleware
+  // Security and request middleware
+  app.use(securityHeaders);
   app.use(cors({
     origin: (origin, callback) => {
       callback(null, !origin || allowedOrigins.includes(origin));

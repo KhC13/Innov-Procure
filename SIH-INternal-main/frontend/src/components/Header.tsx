@@ -47,6 +47,8 @@ const navItems = [
   { id: 'audit', label: 'Audit trail', icon: Shield, group: 'Administration' },
 ];
 
+const navLabels = Object.fromEntries(navItems.map((item) => [item.id, item.label]));
+
 const roleOptions: Array<{ role: UserRole; name: string; detail: string }> = [
   { role: 'SUPER_ADMIN', name: 'Dr. Rajeshwar Sharma, IAS', detail: 'Super Admin · Mission Director' },
   { role: 'GOVERNMENT_OFFICER', name: 'Priyanka Verma', detail: 'Government Innovation Officer' },
@@ -80,6 +82,7 @@ export function Header({
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const unreadCount = notifications.filter((notification) => !notification.is_read).length;
+  const activeSectionLabel = navLabels[activeTab] || 'Workspace overview';
 
   const navigate = (tab: string) => {
     onTabChange(tab);
@@ -92,12 +95,12 @@ export function Header({
       <aside className={`app-sidebar${mobileNavOpen ? ' is-open' : ''}`}>
         <button className="app-brand" onClick={onGoToLanding} aria-label="Open InnovProcure landing page">
           <span className="app-brand-mark"><Shield size={20} /></span>
-          <span><strong>InnovProcure</strong><small>Innovation for Maharashtra</small></span>
+          <span><strong>InnovProcure</strong><small>Innovation for India</small></span>
         </button>
 
         <div className="app-sidebar-context">
           <span className="app-context-indicator" />
-          <span>Government of Maharashtra · Live workspace</span>
+          <span>Government of India · Live workspace</span>
         </div>
 
         <nav className="app-nav" aria-label="Main navigation">
@@ -149,6 +152,10 @@ export function Header({
               aria-label="Search challenges and startups"
             />
           </div>
+        </div>
+        <div className="app-topbar-context" aria-live="polite">
+          <span className="app-topbar-context-line" />
+          <div><strong>{activeSectionLabel}</strong><small>Secure government workspace</small></div>
         </div>
         <div className="app-topbar-actions">
           {canCreateChallenge(user?.role) && (

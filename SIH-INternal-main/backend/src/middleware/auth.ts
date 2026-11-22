@@ -45,9 +45,31 @@ export async function authMiddleware(req: AuthRequest, res: Response, next: Next
 
   const token = authHeader.split(' ')[1];
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as AuthenticatedUser;
-    req.user = decoded;
-    next();
+    const decoded = jwt.verify(token, JWT_SECRET) as Partial<AuthenticatedUser> & { id?: string };
+    if (!decoded.id) {
+      return res.status(401).json({ error: 'Invalid or expired token.' });
+    }
+
+    // Never authorize from role claims supplied by the client. JWTs are only
+    // used to identify the session; permissions come from the current DB row.
+    const userResult = await query(
+      'SELECT id, email, name, role, department_id, startup_id FROM users WHERE id = $1',
+      [decoded.id]
+    );
+    if (userResult.rows.length === 0) {
+      return res.status(401).json({ error: 'User session is no longer valid.' });
+    }
+
+    const user = userResult.rows[0];
+    req.user = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      departmentId: user.department_id,
+      startupId: user.startup_id,
+    };
+    return next();
   } catch {
     return res.status(401).json({ error: 'Invalid or expired token.' });
   }
@@ -61,8 +83,24 @@ export async function optionalAuthMiddleware(req: AuthRequest, _res: Response, n
 
   const token = authHeader.split(' ')[1];
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as AuthenticatedUser;
-    req.user = decoded;
+    const decoded = jwt.verify(token, JWT_SECRET) as Partial<AuthenticatedUser> & { id?: string };
+    if (decoded.id) {
+      const userResult = await query(
+        'SELECT id, email, name, role, department_id, startup_id FROM users WHERE id = $1',
+        [decoded.id]
+      );
+      const user = userResult.rows[0];
+      if (user) {
+        req.user = {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          departmentId: user.department_id,
+          startupId: user.startup_id,
+        };
+      }
+    }
   } catch {
     // Ignore invalid token in optional auth
   }

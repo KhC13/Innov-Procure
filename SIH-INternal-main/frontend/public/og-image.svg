@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">InnovProcure</title>
+  <desc id="desc">Government innovation procurement platform</desc>
+  <rect width="1200" height="630" fill="#062d49"/>
+  <circle cx="1030" cy="90" r="260" fill="#0b496d" opacity=".8"/>
+  <circle cx="1080" cy="580" r="220" fill="#159b9a" opacity=".45"/>
+  <rect x="86" y="92" width="74" height="74" rx="18" fill="#e8a04a"/>
+  <path d="M123 110 145 119v18c0 16-10 27-22 33-12-6-22-17-22-33v-18z" fill="#062d49"/>
+  <text x="86" y="255" fill="#85d4cf" font-family="Arial, sans-serif" font-size="26" font-weight="700" letter-spacing="5">GOVERNMENT INNOVATION</text>
+  <text x="86" y="350" fill="#ffffff" font-family="Arial, sans-serif" font-size="74" font-weight="700">InnovProcure</text>
+  <text x="90" y="410" fill="#cfe2e6" font-family="Arial, sans-serif" font-size="28">From public-sector challenges to scalable solutions.</text>
+  <line x1="90" y1="490" x2="1110" y2="490" stroke="#85d4cf" stroke-width="2" opacity=".45"/>
+  <text x="90" y="540" fill="#cfe2e6" font-family="Arial, sans-serif" font-size="20">Discovery  ·  Evaluation  ·  Pilots  ·  Procurement</text>
+</svg>

@@ -28,6 +28,11 @@ export async function getDb() {
           ? { rejectUnauthorized: false }
           : undefined,
         max: 10,
+        idleTimeoutMillis: 30_000,
+        connectionTimeoutMillis: 10_000,
+      });
+      poolClient.on('error', (err) => {
+        console.warn('PostgreSQL idle connection reset:', err.message);
       });
       // Test connection
       await poolClient.query('SELECT 1');

@@ -52,6 +52,9 @@ export function AuthPage({ onAuthenticated, onBackToLanding }: AuthPageProps) {
     setMode(nextMode);
     setError('');
     if (nextMode === 'signup') {
+      // Public registration is intentionally limited to least-privileged
+      // Startup accounts; privileged roles are selected only for sign-in.
+      setSelectedRole('STARTUP');
       setEmail('');
       setPassword('');
       setConfirmPassword('');
@@ -72,7 +75,7 @@ export function AuthPage({ onAuthenticated, onBackToLanding }: AuthPageProps) {
     try {
       const data = mode === 'login'
         ? await api.login(email, password)
-        : await api.register({ name, email, password, role: selectedRole });
+        : await api.register({ name, email, password, role: 'STARTUP' });
       onAuthenticated(data.user);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to complete authentication.');
@@ -106,6 +109,7 @@ export function AuthPage({ onAuthenticated, onBackToLanding }: AuthPageProps) {
               <span>Workspace role</span>
               <select
                 value={selectedRole === 'SUPER_ADMIN' ? '' : selectedRole}
+                disabled={mode === 'signup'}
                 onChange={(event) => {
                   const role = selectableRoles.find((option) => option.value === event.target.value);
                   if (role) chooseRole(role.value);
@@ -125,6 +129,7 @@ export function AuthPage({ onAuthenticated, onBackToLanding }: AuthPageProps) {
             {adminRole && (
               <button
                 type="button"
+                disabled={mode === 'signup'}
                 className={selectedRole === adminRole.value ? 'auth-role selected' : 'auth-role'}
                 onClick={() => chooseRole(adminRole.value)}
               >

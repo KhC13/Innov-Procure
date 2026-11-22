@@ -69,13 +69,13 @@ router.post('/auth/login', async (req, res) => {
 
     const userRes = await query('SELECT * FROM users WHERE LOWER(email) = LOWER($1)', [email.trim()]);
     if (userRes.rows.length === 0) {
-      return res.status(401).json({ error: 'Invalid credentials. User not found.' });
+      return res.status(401).json({ error: 'Invalid email or password.' });
     }
 
     const user = userRes.rows[0];
     const isMatch = await passwordService.verify(password, user.password_hash);
     if (!isMatch) {
-      return res.status(401).json({ error: 'Invalid credentials. Password incorrect.' });
+      return res.status(401).json({ error: 'Invalid email or password.' });
     }
 
     const tokenUser = {
@@ -112,7 +112,7 @@ router.post('/auth/login', async (req, res) => {
 
 router.post('/auth/register', async (req, res) => {
   try {
-    const { email, password, name, role, departmentId, startupId, designation, phone } = req.body;
+    const { email, password, name, role, designation, phone } = req.body;
     if (!email || !password || !name) {
       return res.status(400).json({ error: 'Email, password, and name are required.' });
     }
@@ -122,14 +122,21 @@ router.post('/auth/register', async (req, res) => {
       return res.status(400).json({ error: 'User with this email already exists.' });
     }
 
+    // Public registration can only create the least-privileged account type.
+    // Government, evaluator, procurement, and super-admin accounts must be
+    // provisioned by an authorized operator rather than by client input.
+    if (role && role !== 'STARTUP') {
+      return res.status(403).json({ error: 'Only Startup self-registration is permitted.' });
+    }
+
     const passwordHash = await passwordService.hash(password);
     const userId = `user-${Date.now()}`;
-    const userRole = role || 'STARTUP';
+    const userRole = 'STARTUP';
 
     await query(
       `INSERT INTO users (id, email, password_hash, name, role, department_id, startup_id, designation, phone)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-      [userId, email.trim().toLowerCase(), passwordHash, name.trim(), userRole, departmentId || null, startupId || null, designation || '', phone || '']
+      [userId, email.trim().toLowerCase(), passwordHash, name.trim(), userRole, null, null, designation || '', phone || '']
     );
 
     const tokenUser = {
@@ -137,8 +144,8 @@ router.post('/auth/register', async (req, res) => {
       email: email.trim().toLowerCase(),
       name: name.trim(),
       role: userRole,
-      departmentId: departmentId || null,
-      startupId: startupId || null,
+      departmentId: null,
+      startupId: null,
     };
     const token = generateToken(tokenUser);
 
@@ -154,7 +161,7 @@ router.post('/auth/register', async (req, res) => {
   }
 });
 
-router.post('/auth/logout', (_req, res) => {
+router.post('/auth/logout', authMiddleware, (_req, res) => {
   return res.json({ message: 'Logged out successfully.' });
 });
 
@@ -283,7 +290,7 @@ router.get('/auth/rbac-matrix', optionalAuthMiddleware, async (req: AuthRequest,
   return res.json(matrix);
 });
 
-router.get('/auth/demo-users', async (_req, res) => {
+router.get('/auth/demo-users', authMiddleware, requireRoles('SUPER_ADMIN'), async (_req, res) => {
   try {
     const result = await query(`
       SELECT u.id, u.email, u.name, u.role, u.department_id, u.startup_id, u.designation,
@@ -414,7 +421,7 @@ router.get('/problems/:id', async (req, res) => {
   }
 });
 
-router.post('/problems', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.post('/problems', authMiddleware, requireRoles('GOVERNMENT_OFFICER'), async (req: AuthRequest, res: Response) => {
   try {
     const {
       title,
@@ -519,7 +526,7 @@ router.post('/problems', authMiddleware, async (req: AuthRequest, res: Response)
   }
 });
 
-router.put('/problems/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.put('/problems/:id', authMiddleware, requireRoles('GOVERNMENT_OFFICER'), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { title, description, sector, location, budget, timelineMonths, expectedImpact, targetBeneficiaries, status } = req.body;
@@ -547,7 +554,7 @@ router.put('/problems/:id', authMiddleware, async (req: AuthRequest, res: Respon
   }
 });
 
-router.post('/problems/:id/publish', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.post('/problems/:id/publish', authMiddleware, requireRoles('GOVERNMENT_OFFICER'), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     await query(
@@ -567,7 +574,7 @@ router.post('/problems/:id/publish', authMiddleware, async (req: AuthRequest, re
   }
 });
 
-router.post('/problems/:id/close', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.post('/problems/:id/close', authMiddleware, requireRoles('GOVERNMENT_OFFICER'), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     await query(`UPDATE problem_statements SET status = 'CLOSED', updated_at = NOW() WHERE id = $1`, [id]);
@@ -582,7 +589,7 @@ router.post('/problems/:id/close', authMiddleware, async (req: AuthRequest, res:
    3. STARTUPS DIRECTORY & PROFILES
    ========================================================================= */
 
-router.get('/startups', async (req, res) => {
+router.get('/startups', authMiddleware, requireRoles('GOVERNMENT_OFFICER', 'EVALUATOR', 'PROCUREMENT_OFFICER'), async (req, res) => {
   try {
     const { search, sector, technology, location, stage, certification } = req.query;
 
@@ -627,9 +634,13 @@ router.get('/startups', async (req, res) => {
   }
 });
 
-router.get('/startups/:id', async (req, res) => {
+router.get('/startups/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
+    const canReadAnyStartup = ['SUPER_ADMIN', 'GOVERNMENT_OFFICER', 'EVALUATOR', 'PROCUREMENT_OFFICER'].includes(req.user!.role);
+    if (!canReadAnyStartup && !(req.user!.role === 'STARTUP' && req.user!.startupId === id)) {
+      return res.status(403).json({ error: 'Forbidden: You are not authorized to view this startup record.' });
+    }
     const sRes = await query('SELECT * FROM startups WHERE id = $1', [id]);
     if (sRes.rows.length === 0) {
       return res.status(404).json({ error: 'Startup not found' });
@@ -736,7 +747,7 @@ router.post('/startups/:id/documents', authMiddleware, upload.array('documents',
    4. APPLICATIONS WORKFLOW & SCREENING
    ========================================================================= */
 
-router.get('/applications', optionalAuthMiddleware, async (req: AuthRequest, res: Response) => {
+router.get('/applications', authMiddleware, requireRoles('STARTUP', 'GOVERNMENT_OFFICER', 'EVALUATOR', 'PROCUREMENT_OFFICER'), async (req: AuthRequest, res: Response) => {
   try {
     const { problemId, startupId, status } = req.query;
 
@@ -781,7 +792,7 @@ router.get('/applications', optionalAuthMiddleware, async (req: AuthRequest, res
   }
 });
 
-router.get('/applications/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.get('/applications/:id', authMiddleware, requireRoles('STARTUP', 'GOVERNMENT_OFFICER', 'EVALUATOR', 'PROCUREMENT_OFFICER'), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const appRes = await query(
@@ -802,6 +813,9 @@ router.get('/applications/:id', authMiddleware, async (req: AuthRequest, res: Re
     }
 
     const application = appRes.rows[0];
+    if (req.user!.role === 'STARTUP' && req.user!.startupId !== application.startup_id) {
+      return res.status(403).json({ error: 'Forbidden: You are not authorized to view this application.' });
+    }
     const [docsRes, evalsRes, matchRes] = await Promise.all([
       query('SELECT * FROM application_documents WHERE application_id = $1', [id]),
       query(
@@ -827,7 +841,7 @@ router.get('/applications/:id', authMiddleware, async (req: AuthRequest, res: Re
   }
 });
 
-router.post('/applications', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.post('/applications', authMiddleware, requireRoles('STARTUP'), async (req: AuthRequest, res: Response) => {
   try {
     const {
       problemId,
@@ -893,7 +907,7 @@ router.post('/applications', authMiddleware, async (req: AuthRequest, res: Respo
   }
 });
 
-router.post('/applications/:id/shortlist', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.post('/applications/:id/shortlist', authMiddleware, requireRoles('GOVERNMENT_OFFICER'), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
@@ -938,7 +952,7 @@ router.post('/applications/:id/shortlist', authMiddleware, async (req: AuthReque
   }
 });
 
-router.post('/applications/:id/reject', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.post('/applications/:id/reject', authMiddleware, requireRoles('GOVERNMENT_OFFICER', 'EVALUATOR'), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { reason } = req.body;
@@ -955,7 +969,7 @@ router.post('/applications/:id/reject', authMiddleware, async (req: AuthRequest,
    5. AI MATCHING ENGINE REST APIS
    ========================================================================= */
 
-router.get('/matches/problem/:problemId', async (req, res) => {
+router.get('/matches/problem/:problemId', authMiddleware, requireRoles('GOVERNMENT_OFFICER', 'EVALUATOR', 'PROCUREMENT_OFFICER'), async (req, res) => {
   try {
     const { problemId } = req.params;
     const matchesRes = await query(
@@ -977,7 +991,7 @@ router.get('/matches/problem/:problemId', async (req, res) => {
   }
 });
 
-router.post('/matches/generate', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.post('/matches/generate', authMiddleware, requireRoles('GOVERNMENT_OFFICER'), async (req: AuthRequest, res: Response) => {
   try {
     const { problemId, limit = 8 } = req.body;
     if (!problemId) {
@@ -1103,7 +1117,7 @@ router.post('/matches/generate', authMiddleware, async (req: AuthRequest, res: R
    6. EVALUATIONS SYSTEM
    ========================================================================= */
 
-router.get('/evaluations', optionalAuthMiddleware, async (req: AuthRequest, res: Response) => {
+router.get('/evaluations', authMiddleware, requireRoles('GOVERNMENT_OFFICER', 'EVALUATOR'), async (req: AuthRequest, res: Response) => {
   try {
     const { applicationId } = req.query;
     let sql = `
@@ -1138,7 +1152,7 @@ router.get('/evaluations', optionalAuthMiddleware, async (req: AuthRequest, res:
   }
 });
 
-router.post('/evaluations', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.post('/evaluations', authMiddleware, requireRoles('EVALUATOR'), async (req: AuthRequest, res: Response) => {
   try {
     const {
       applicationId,
@@ -1226,7 +1240,7 @@ router.post('/evaluations', authMiddleware, async (req: AuthRequest, res: Respon
    7. PILOTS & KPI MANAGEMENT
    ========================================================================= */
 
-router.get('/pilots', async (req, res) => {
+router.get('/pilots', authMiddleware, requireRoles('GOVERNMENT_OFFICER', 'PROCUREMENT_OFFICER'), async (req, res) => {
   try {
     const { status, departmentId } = req.query;
     let sql = `
@@ -1260,7 +1274,7 @@ router.get('/pilots', async (req, res) => {
   }
 });
 
-router.get('/pilots/:id', async (req, res) => {
+router.get('/pilots/:id', authMiddleware, requireRoles('GOVERNMENT_OFFICER', 'PROCUREMENT_OFFICER'), async (req, res) => {
   try {
     const { id } = req.params;
     const pRes = await query(
@@ -1304,7 +1318,7 @@ router.get('/pilots/:id', async (req, res) => {
   }
 });
 
-router.post('/pilots', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.post('/pilots', authMiddleware, requireRoles('GOVERNMENT_OFFICER'), async (req: AuthRequest, res: Response) => {
   try {
     const {
       applicationId,
@@ -1386,7 +1400,7 @@ router.post('/pilots', authMiddleware, async (req: AuthRequest, res: Response) =
   }
 });
 
-router.post('/pilots/:id/kpis', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.post('/pilots/:id/kpis', authMiddleware, requireRoles('GOVERNMENT_OFFICER', 'STARTUP'), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { name, metricUnit, baselineValue, targetValue, currentValue } = req.body;
@@ -1406,7 +1420,7 @@ router.post('/pilots/:id/kpis', authMiddleware, async (req: AuthRequest, res: Re
   }
 });
 
-router.put('/kpis/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.put('/kpis/:id', authMiddleware, requireRoles('GOVERNMENT_OFFICER', 'STARTUP'), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { currentValue, targetValue } = req.body;
@@ -1432,7 +1446,7 @@ router.put('/kpis/:id', authMiddleware, async (req: AuthRequest, res: Response) 
    8. SCALE READINESS ASSESSMENT
    ========================================================================= */
 
-router.get('/scale/:pilotId', async (req, res) => {
+router.get('/scale/:pilotId', authMiddleware, requireRoles('GOVERNMENT_OFFICER', 'PROCUREMENT_OFFICER'), async (req, res) => {
   try {
     const { pilotId } = req.params;
     const assessmentRes = await query(
@@ -1454,7 +1468,7 @@ router.get('/scale/:pilotId', async (req, res) => {
   }
 });
 
-router.post('/scale', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.post('/scale', authMiddleware, requireRoles('GOVERNMENT_OFFICER'), async (req: AuthRequest, res: Response) => {
   try {
     const {
       pilotId,
@@ -1548,7 +1562,7 @@ router.post('/scale', authMiddleware, async (req: AuthRequest, res: Response) =>
    9. PROCUREMENT PIPELINE & KANBAN
    ========================================================================= */
 
-router.get('/procurement', async (req, res) => {
+router.get('/procurement', authMiddleware, requireRoles('GOVERNMENT_OFFICER', 'PROCUREMENT_OFFICER'), async (req, res) => {
   try {
     const { stage, departmentId } = req.query;
     let sql = `
@@ -1584,7 +1598,7 @@ router.get('/procurement', async (req, res) => {
   }
 });
 
-router.get('/procurement/:id', async (req, res) => {
+router.get('/procurement/:id', authMiddleware, requireRoles('GOVERNMENT_OFFICER', 'PROCUREMENT_OFFICER'), async (req, res) => {
   try {
     const { id } = req.params;
     const prRes = await query(
@@ -1633,7 +1647,7 @@ router.get('/procurement/:id', async (req, res) => {
   }
 });
 
-router.post('/procurement', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.post('/procurement', authMiddleware, requireRoles('PROCUREMENT_OFFICER'), async (req: AuthRequest, res: Response) => {
   try {
     const {
       pilotId,
@@ -1696,7 +1710,7 @@ router.post('/procurement', authMiddleware, async (req: AuthRequest, res: Respon
   }
 });
 
-router.post('/procurement/:id/stage', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.post('/procurement/:id/stage', authMiddleware, requireRoles('PROCUREMENT_OFFICER'), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { toStage, notes = '' } = req.body;
@@ -1738,7 +1752,7 @@ router.post('/procurement/:id/stage', authMiddleware, async (req: AuthRequest, r
    10. CONTRACT MANAGEMENT
    ========================================================================= */
 
-router.get('/contracts', async (_req, res) => {
+router.get('/contracts', authMiddleware, requireRoles('GOVERNMENT_OFFICER', 'PROCUREMENT_OFFICER'), async (_req, res) => {
   try {
     const result = await query(
       `SELECT c.*,
@@ -1757,7 +1771,7 @@ router.get('/contracts', async (_req, res) => {
   }
 });
 
-router.post('/contracts', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.post('/contracts', authMiddleware, requireRoles('PROCUREMENT_OFFICER'), async (req: AuthRequest, res: Response) => {
   try {
     const { procurementId, startupId, departmentId, contractNumber, startDate, endDate, contractValue, terms, documentUrl } = req.body;
 
@@ -1803,19 +1817,28 @@ router.post('/contracts', authMiddleware, async (req: AuthRequest, res: Response
    11. DEPARTMENTS
    ========================================================================= */
 
-router.get('/departments', async (_req, res) => {
+router.get('/departments', authMiddleware, requireRoles('GOVERNMENT_OFFICER', 'PROCUREMENT_OFFICER'), async (_req, res) => {
   try {
-    const result = await query('SELECT * FROM departments ORDER BY name ASC');
+    const result = await query(
+      `SELECT id, name, code, ministry, description, location,
+              active_problems_count, pilots_count, total_procurement_value
+       FROM departments ORDER BY name ASC`
+    );
     return res.json({ departments: result.rows });
   } catch (err: any) {
     return sendInternalError(res, 'List departments', err);
   }
 });
 
-router.get('/departments/:id', async (req, res) => {
+router.get('/departments/:id', authMiddleware, requireRoles('GOVERNMENT_OFFICER', 'PROCUREMENT_OFFICER'), async (req, res) => {
   try {
     const { id } = req.params;
-    const deptRes = await query('SELECT * FROM departments WHERE id = $1', [id]);
+    const deptRes = await query(
+      `SELECT id, name, code, ministry, description, location,
+              active_problems_count, pilots_count, total_procurement_value
+       FROM departments WHERE id = $1`,
+      [id]
+    );
     if (deptRes.rows.length === 0) {
       return res.status(404).json({ error: 'Department not found' });
     }
@@ -1844,25 +1867,15 @@ router.get('/departments/:id', async (req, res) => {
    12. NOTIFICATIONS & AUDIT LOGS
    ========================================================================= */
 
-router.get('/notifications', optionalAuthMiddleware, async (req: AuthRequest, res: Response) => {
+router.get('/notifications', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    let result;
-    if (!req.user) {
-      result = await query(
-        `SELECT * FROM notifications
-         WHERE user_id IS NULL AND role IS NULL
-         ORDER BY created_at DESC
-         LIMIT 50`
-      );
-    } else {
-      result = await query(
-        `SELECT * FROM notifications
-         WHERE user_id = $1 OR role = $2 OR (user_id IS NULL AND role IS NULL)
-         ORDER BY created_at DESC
-         LIMIT 50`,
-        [req.user.id, req.user.role]
-      );
-    }
+    const result = await query(
+      `SELECT * FROM notifications
+       WHERE user_id = $1 OR role = $2 OR (user_id IS NULL AND role IS NULL)
+       ORDER BY created_at DESC
+       LIMIT 50`,
+      [req.user!.id, req.user!.role]
+    );
     const unreadCount = result.rows.filter((n) => !n.is_read).length;
     return res.json({ notifications: result.rows, unreadCount });
   } catch (err: any) {
@@ -1870,10 +1883,14 @@ router.get('/notifications', optionalAuthMiddleware, async (req: AuthRequest, re
   }
 });
 
-router.put('/notifications/:id/read', authMiddleware, async (req, res) => {
+router.put('/notifications/:id/read', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    await query('UPDATE notifications SET is_read = true WHERE id = $1', [id]);
+    await query(
+      `UPDATE notifications SET is_read = true
+       WHERE id = $1 AND (user_id = $2 OR role = $3 OR (user_id IS NULL AND role IS NULL))`,
+      [id, req.user!.id, req.user!.role]
+    );
     return res.json({ message: 'Marked as read' });
   } catch (err: any) {
     return sendInternalError(res, 'Mark notification read', err);
@@ -1905,7 +1922,7 @@ router.get('/audit-logs', authMiddleware, requireRoles('SUPER_ADMIN'), async (_r
    13. ANALYTICS & DASHBOARD METRICS (Backed strictly by PostgreSQL aggregations)
    ========================================================================= */
 
-router.get('/analytics/dashboard', async (req, res) => {
+router.get('/analytics/dashboard', authMiddleware, requireRoles('GOVERNMENT_OFFICER'), async (req, res) => {
   try {
     const { departmentId, sector, status } = req.query;
 
@@ -2049,7 +2066,7 @@ router.post('/files/upload', authMiddleware, upload.single('file'), async (req: 
    15. SYSTEM & DEMO DATA MANAGEMENT
    ========================================================================= */
 
-router.post('/system/reset-demo', async (_req, res) => {
+router.post('/system/reset-demo', authMiddleware, requireRoles('SUPER_ADMIN'), async (_req, res) => {
   try {
     await resetDatabaseToDemo();
     return res.json({ success: true, message: 'Database successfully reset to curated demo dataset.' });

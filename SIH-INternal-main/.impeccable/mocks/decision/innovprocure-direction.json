@@ -1,0 +1,186 @@
+{
+  "title": "Choose the InnovProcure visual direction",
+  "question": "The operating brief is set: five roles, real procurement workflows, and a deep-navy, teal, and restrained-amber palette. Which visual system should carry that work?",
+  "options": [
+    {
+      "id": "assigned",
+      "kind": "assigned",
+      "label": "Civic Wayfinding",
+      "kicker": "THE ROLL",
+      "lineage": "Maharashtra civic and public-transport wayfinding",
+      "thesis": "A civic wayfinding system makes the route from public need to scaled procurement legible at a glance.",
+      "palette": ["#062D49", "#159B9A", "#E8A04A", "#F2F7F8"],
+      "materials": ["flat civic color fields", "numbered route markers"],
+      "viewport": "The existing role-aware sidebar stays familiar; a live dashboard pairs real procurement indicators with a clearly labeled, eight-stage pathway and its current counts. Flat wayfinding markers identify each module and stage without replacing standard controls.",
+      "risk": "Route language must not blur the distinct review tasks in each module.",
+      "raised": [
+        {
+          "from": "rw-timetable-slide-rack",
+          "raise": "Keep stage and metric comparisons disciplined in aligned columns so density stays readable."
+        }
+      ],
+      "html": ".impeccable/mocks/decision/assigned.html"
+    },
+    {
+      "id": "model-pick",
+      "kind": "pick",
+      "label": "State Gazette Index",
+      "kicker": "IMPECCABLE’S PICK",
+      "lineage": "Maharashtra government resolutions and public notices",
+      "thesis": "A clear public record puts authority, status, and the next action in their proper order.",
+      "palette": ["#062D49", "#159B9A", "#E8A04A", "#F7F9F8"],
+      "materials": ["precise record hierarchy", "quiet ruled divisions"],
+      "viewport": "Keep the role-aware sidebar and familiar controls; lead with the selected module, its real workflow summary, and a prioritized queue of the records that need action.",
+      "risk": "A record-first hierarchy can feel document-heavy if it buries the live workflow.",
+      "html": ".impeccable/mocks/decision/model-pick.html"
+    },
+    {
+      "id": "challenger-timetable",
+      "kind": "challenger",
+      "catalogId": "rw-timetable-slide-rack",
+      "label": "Public Service Timetable",
+      "verdict": "competitive",
+      "lineage": "Public transport timetables and departure boards",
+      "thesis": "A disciplined timetable rhythm makes many live stages easy to scan in one pass.",
+      "palette": ["#062D49", "#159B9A", "#E8A04A", "#F2F7F8"],
+      "materials": ["fixed columns", "high-contrast state markers"],
+      "viewport": "Standard navigation and controls frame a live dashboard; the stage summary and next-action queue use aligned columns, with amber reserved for items that need attention.",
+      "case": "Strong workflow clarity; it holds product clarity while civic wayfinding better identifies the Maharashtra public-service context.",
+      "risk": "Too much timetable structure could make detail-heavy forms feel cramped.",
+      "html": ".impeccable/mocks/decision/challenger-timetable.html"
+    },
+    {
+      "id": "challenger-metro-tiles",
+      "kind": "challenger",
+      "catalogId": "digital-design-canon-metro-typographic-tiles",
+      "label": "Metro Service Tiles",
+      "verdict": "competitive",
+      "lineage": "Maharashtra urban transit wayfinding",
+      "thesis": "Flat, labeled tiles give each workspace module a clear place and state.",
+      "palette": ["#062D49", "#159B9A", "#E8A04A", "#F2F7F8"],
+      "materials": ["flat color fields", "bold but bounded module labels"],
+      "viewport": "A familiar sidebar and top bar anchor the dashboard; a compact grid of labeled workflow tiles surfaces current records, actions, and status without horizontal scrolling or hidden controls.",
+      "case": "Strong audience recognition and product clarity; civic wayfinding offers a more coherent signature across dense forms and tables.",
+      "risk": "Oversized tile labels could compete with real data in dense modules.",
+      "html": ".impeccable/mocks/decision/challenger-metro-tiles.html"
+    },
+    {
+      "id": "challenger-streaming",
+      "kind": "challenger",
+      "catalogId": "pop-culture-shelf-streaming-title-card-wall",
+      "label": "Catalog Wall",
+      "verdict": "declined",
+      "lineage": "Streaming catalog rows",
+      "thesis": "A catalog of expandable tiles makes each available record feel like a selectable destination.",
+      "palette": ["#062D49", "#159B9A", "#E8A04A", "#F2F7F8"],
+      "materials": ["fixed card rows", "focused selection state"],
+      "viewport": "The standard shell stays intact, but a dense dashboard becomes a wall of record cards.",
+      "case": "Does not identify with public procurement work and weakens side-by-side comparison.",
+      "kept": "Make the currently selected record unmistakable.",
+      "risk": "A card wall hides important comparison fields.",
+      "wireframe": {
+        "cols": 12,
+        "rows": 10,
+        "regions": [
+          {"label": "navigation", "x": 0, "y": 0, "w": 3, "h": 10, "accent": true},
+          {"label": "catalog cards", "x": 3, "y": 1, "w": 9, "h": 7},
+          {"label": "filters", "x": 3, "y": 0, "w": 9, "h": 1}
+        ]
+      }
+    },
+    {
+      "id": "challenger-zoo-map",
+      "kind": "challenger",
+      "catalogId": "aww2-zoo-gardens-guide-map",
+      "label": "Area Map",
+      "verdict": "declined",
+      "lineage": "Public-site guide maps",
+      "thesis": "Separate color areas distinguish the different parts of a complex system.",
+      "palette": ["#062D49", "#159B9A", "#E8A04A", "#F2F7F8"],
+      "materials": ["distinct work areas", "clear group boundaries"],
+      "viewport": "Standard modules are grouped as distinct regions around a central dashboard.",
+      "case": "The map metaphor does not help visitors complete the platform’s record-based tasks.",
+      "kept": "Use clear visual boundaries between distinct work areas.",
+      "risk": "Spatial grouping can make cross-stage handoffs harder to follow.",
+      "wireframe": {
+        "cols": 12,
+        "rows": 10,
+        "regions": [
+          {"label": "navigation", "x": 0, "y": 0, "w": 3, "h": 10, "accent": true},
+          {"label": "work area", "x": 3, "y": 0, "w": 9, "h": 2},
+          {"label": "separate regions", "x": 3, "y": 2, "w": 9, "h": 8}
+        ]
+      }
+    },
+    {
+      "id": "challenger-j-card",
+      "kind": "challenger",
+      "catalogId": "vernacular-ephemera-cassette-j-card",
+      "label": "Folded Case File",
+      "verdict": "declined",
+      "lineage": "Cassette inlay cards and timed tracklists",
+      "thesis": "A compact, ordered list makes an item's full history easy to follow.",
+      "palette": ["#062D49", "#159B9A", "#E8A04A", "#F2F7F8"],
+      "materials": ["ordered entries", "clear timing"],
+      "viewport": "The dashboard is arranged as a compact case file with records grouped by stage.",
+      "case": "The artifact does not fit the public-sector procurement context and the fold metaphor adds no value.",
+      "kept": "Preserve an explicit, readable sequence of dated actions.",
+      "risk": "A fold-based structure would hide details behind an unnecessary interaction.",
+      "wireframe": {
+        "cols": 12,
+        "rows": 10,
+        "regions": [
+          {"label": "navigation", "x": 0, "y": 0, "w": 3, "h": 10, "accent": true},
+          {"label": "case heading", "x": 3, "y": 0, "w": 9, "h": 2},
+          {"label": "ordered record list", "x": 3, "y": 2, "w": 9, "h": 8}
+        ]
+      }
+    },
+    {
+      "id": "challenger-split-flap",
+      "kind": "challenger",
+      "catalogId": "signals-instruments-split-flap-concourse",
+      "label": "Live Departure Board",
+      "verdict": "declined",
+      "lineage": "Rail-concourse departure boards",
+      "thesis": "A dense status board brings changing states into one shared glance.",
+      "palette": ["#062D49", "#159B9A", "#E8A04A", "#F2F7F8"],
+      "materials": ["fixed status rows", "clear alert hierarchy"],
+      "viewport": "A standard dashboard shows a dense live board of procurement and review events.",
+      "case": "It makes the product read like a transit instrument rather than a role-based procurement workspace.",
+      "kept": "Keep changing and delayed states easy to distinguish.",
+      "risk": "Per-character motion would distract and would not improve task completion.",
+      "wireframe": {
+        "cols": 12,
+        "rows": 10,
+        "regions": [
+          {"label": "navigation", "x": 0, "y": 0, "w": 3, "h": 10, "accent": true},
+          {"label": "live status", "x": 3, "y": 0, "w": 9, "h": 2},
+          {"label": "status rows", "x": 3, "y": 2, "w": 9, "h": 8}
+        ]
+      }
+    }
+  ],
+  "reroll": {"registers": ["safer", "bolder"]},
+  "buildPath": {"value": "code", "toggle": false},
+  "canon": true,
+  "canonCard": {
+    "kind": "canon",
+    "label": "The government workspace standard",
+    "thesis": "A familiar role-based workspace keeps records, controls, and next actions easy to find.",
+    "palette": ["#062D49", "#159B9A", "#E8A04A", "#F2F7F8"],
+    "materials": ["clear hierarchy", "quiet dividers"],
+    "viewport": "A stable left navigation, contextual header, and working dashboard with real service data, filters, and a clear next action.",
+    "risk": "The familiar arrangement needs careful craft to avoid feeling like a template.",
+    "wireframe": {
+      "cols": 12,
+      "rows": 10,
+      "regions": [
+        {"label": "navigation", "x": 0, "y": 0, "w": 3, "h": 10, "accent": true},
+        {"label": "header", "x": 3, "y": 0, "w": 9, "h": 1},
+        {"label": "workspace", "x": 3, "y": 1, "w": 9, "h": 9}
+      ]
+    }
+  },
+  "steer": true
+}
