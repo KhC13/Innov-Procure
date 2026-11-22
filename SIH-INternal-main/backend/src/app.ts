@@ -13,6 +13,7 @@ import { canAccessStartupDocuments, isSafeFilename, resolveUploadDir } from './u
 import { genericErrorHandler, sendInternalError } from './middleware/errorHandling.js';
 import { authenticatedRateLimit, publicRateLimit, tieredRateLimit } from './middleware/rateLimiting.js';
 import { securityHeaders } from './middleware/securityHeaders.js';
+import { isNeo4jConfigured, verifyNeo4jConnection } from './services/neo4j.js';
 
 export async function createApp() {
   const app = express();
@@ -40,6 +41,17 @@ export async function createApp() {
     await seedDatabaseIfEmpty();
   } catch (dbErr) {
     console.error('Database initialization warning:', dbErr);
+  }
+
+  if (isNeo4jConfigured()) {
+    try {
+      const neo4jStatus = await verifyNeo4jConnection();
+      console.log(`Neo4j connection verified successfully (${neo4jStatus.latencyMs} ms).`);
+    } catch {
+      // Neo4j is an incremental capability; keep the existing PostgreSQL app
+      // available while making the integration failure explicit in server logs.
+      console.warn('Neo4j connection verification failed.');
+    }
   }
 
   // Private uploads: authenticated downloads only, never publicly executable.
